@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OUTSIDE.EXE</title>
+    <meta name="description" content="OUTSIDE.EXE — a tiny third-person 3D comedy about leaving the house to buy cat food. The outside world has too many NPCs." />
+    <meta name="theme-color" content="#14111c" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%2314111c%22/><text x=%2250%22 y=%2268%22 font-size=%2252%22 text-anchor=%22middle%22 fill=%22%23ffb347%22 font-family=%22monospace%22 font-weight=%22900%22>&gt;_</text></svg>" />
+    <style>
+      /* Critical loading-screen CSS (inline so it paints before JS arrives). */
+      html, body { margin: 0; height: 100%; background: #14111c; overflow: hidden; }
+      #loading { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+        background: radial-gradient(ellipse at 50% 120%, #3b2d6b 0%, #14111c 60%); color: #f6e7cb; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; transition: opacity .5s; }
+      #loading.done { opacity: 0; pointer-events: none; }
+      #loading .logo { font: 900 clamp(34px, 7vw, 72px)/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .04em; color: #fff;
+        text-shadow: 3px 3px 0 #ff5c8a, -3px -2px 0 #5cc8ff; }
+      #loading .bar { width: min(360px, 70vw); height: 10px; border: 2px solid #f6e7cb; border-radius: 6px; padding: 2px; }
+      #loading .fill { height: 100%; width: 4%; background: #ffb347; border-radius: 3px; transition: width .2s; }
+      #loading .msg { font-size: 14px; opacity: .85; min-height: 1.2em; text-align: center; padding: 0 16px; }
+      #loading .err { color: #ff8fa3; max-width: 520px; text-align: center; line-height: 1.5; padding: 0 16px; }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="c"></canvas>
+      <div id="vignette"></div>
+      <div id="tint"></div>
+      <div id="letterbox"><div class="bar top"></div><div class="bar bot"></div></div>
+      <div id="world-bubbles"></div>
+
+      <div id="hud" class="hidden">
+        <div id="objective">
+          <div id="clock">SATURDAY | 7:42 PM</div>
+          <div class="obj-label">CURRENT OBJECTIVE</div>
+          <div class="obj-text">Absolutely nothing.</div>
+          <div class="obj-sub"></div>
+        </div>
+        <div id="meter" data-level="low">
+          <div class="m-head"><span>THOUGHT SPIRAL</span><span id="meter-label">CALM-ISH</span></div>
+          <div class="m-track"><div id="meter-fill"></div><i style="left:30%"></i><i style="left:70%"></i></div>
+          <div id="focus"><span class="key">F</span> FOCUS <span class="f-cd">READY</span></div>
+        </div>
+        <div id="inventory"></div>
+        <div id="hud-bottom-left">
+          <div id="secrets">SECRETS 0/5</div>
+          <div id="phone-ind"><span class="key">Q</span> PHONE SHIELD</div>
+        </div>
+        <div id="prompt"></div>
+        <div id="warning"></div>
+        <div id="bossbar"><div class="b-name"></div><div class="b-sub"></div><div class="b-track"><div class="b-fill"></div></div></div>
+        <div id="click-hint">Click to look around · Esc to pause</div>
+      </div>
+
+      <div id="thoughts"></div>
+      <div id="dialogue"></div>
+      <div id="choices" class="hidden"></div>
+      <div id="cards"></div>
+      <div id="toasts"></div>
+      <div id="skip">Press <span class="key">Tab</span> to skip</div>
+      <div id="phone" class="hidden"><div class="device"><div class="notch"></div><div class="screen"></div></div></div>
+      <div id="minigame" class="hidden"></div>
+      <div id="fade"><div id="fade-text"></div></div>
+
+      <div id="menu">
+        <div class="menu-inner">
+          <div class="title-wrap">
+            <div class="title">OUTSIDE<span>.EXE</span></div>
+            <div class="tagline">The outside world has too many NPCs.</div>
+          </div>
+          <div class="menu-buttons">
+            <button id="btn-start" class="primary">▶ Start Game</button>
+            <button id="btn-controls">Controls</button>
+            <button id="btn-settings">Settings</button>
+            <button id="btn-credits">Credits</button>
+          </div>
+          <div class="menu-foot">Best with headphones · ~8 minutes · No account, no install, just anxiety</div>
+        </div>
+      </div>
+
+      <div id="pause" class="hidden">
+        <div class="menu-inner small">
+          <div class="title sm">PAUSED</div>
+          <div class="tagline">The world politely waits. For once.</div>
+          <div class="menu-buttons">
+            <button id="p-resume" class="primary">Resume</button>
+            <button id="p-controls">Controls</button>
+            <button id="p-settings">Settings</button>
+            <button id="p-restart">Restart</button>
+            <button id="p-menu">Main Menu</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="panel-controls" class="panel hidden">
+        <h2>Controls</h2>
+        <table>
+          <tr><td><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span></td><td>Move</td></tr>
+          <tr><td>Mouse</td><td>Rotate camera (click to lock, or drag)</td></tr>
+          <tr><td><span class="key">Shift</span></td><td>Walk faster</td></tr>
+          <tr><td><span class="key">E</span></td><td>Interact / advance dialogue</td></tr>
+          <tr><td><span class="key">F</span></td><td>Focus — quiet the thoughts for a moment</td></tr>
+          <tr><td><span class="key">Q</span></td><td>Pretend to check phone (NPCs notice you less)</td></tr>
+          <tr><td><span class="key">1</span>–<span class="key">4</span></td><td>Pick dialogue options</td></tr>
+          <tr><td><span class="key">Tab</span></td><td>Skip cutscene</td></tr>
+          <tr><td><span class="key">M</span></td><td>Mute</td></tr>
+          <tr><td><span class="key">Esc</span></td><td>Pause</td></tr>
+        </table>
+        <button class="close">Got it</button>
+      </div>
+
+      <div id="panel-settings" class="panel hidden">
+        <h2>Settings</h2>
+        <label>Master volume <input id="s-master" type="range" min="0" max="1" step="0.05" /></label>
+        <label>Music volume <input id="s-music" type="range" min="0" max="1" step="0.05" /></label>
+        <label>Effects volume <input id="s-sfx" type="range" min="0" max="1" step="0.05" /></label>
+        <label>Mouse sensitivity <input id="s-sens" type="range" min="0.3" max="2.5" step="0.05" /></label>
+        <label>Graphics quality
+          <select id="s-quality"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
+        </label>
+        <label class="check"><input id="s-motion" type="checkbox" /> Reduced motion</label>
+        <label class="check"><input id="s-anx" type="checkbox" /> Reduced anxiety effects</label>
+        <label class="check"><input id="s-invert" type="checkbox" /> Invert camera Y</label>
+        <label class="check"><input id="s-mute" type="checkbox" /> Mute all audio</label>
+        <button class="close">Done</button>
+      </div>
+
+      <div id="panel-credits" class="panel hidden">
+        <h2>Credits</h2>
+        <p><b>OUTSIDE.EXE</b> — a small game about a big trip to the supermarket.</p>
+        <p>Everything you see and hear is generated in your browser: procedural low-poly geometry, canvas-drawn signs and posters, and WebAudio-synthesized music &amp; sound. No downloads, no trackers.</p>
+        <p>Built with Three.js. All anime titles, shops and characters are fictional.</p>
+        <p>Dedicated to everyone who has rehearsed "thank you" three times before reaching the counter.</p>
+        <button class="close">Close</button>
+      </div>
+
+      <div id="ending" class="hidden"><div class="ending-body"></div>
+        <div class="menu-buttons row"><button id="e-replay" class="primary">↻ Replay</button><button id="e-menu">Main Menu</button></div>
+      </div>
+
+      <div id="loading">
+        <div class="logo">OUTSIDE.EXE</div>
+        <div class="bar"><div class="fill" id="load-fill"></div></div>
+        <div class="msg" id="load-msg">Preparing for human interaction...</div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
