@@ -8,7 +8,7 @@ A small third-person 3D comedy game for desktop browsers. Aarav, 22, has to leav
 - **Engine:** Three.js + TypeScript + Vite. No other runtime dependencies.
 - **Assets:** none to download. Geometry is procedural low-poly, signs and posters are drawn on canvases at runtime, and all music and sound effects are synthesized with WebAudio.
 - **Size:** about 207 KB gzipped on first load, plus an 11 KB chunk for the outside world that loads lazily after the apartment.
-- **Look:** cel-shaded characters with anime-style outlines and soft contact shadows; on Medium/High quality a post-processing pass adds bloom on signs, lamps and LED strips, plus a colour grade that the Thought Spiral pushes toward desaturation and chromatic fringing.
+- **Look:** clean, bright stylised low-poly in a pastel evening: soft violet shadows, a vivid cartoon sunset with puffy clouds, sandy sidewalks, tiered pine trees, bushes, rocks and flowers. Characters are cel-shaded with anime-style eyes, outlines, a soft rim light and contact shadows. Medium and above add bloom on signs, lamps and LED strips, glossy floors and asphalt, light beams under street lamps, and a colour grade that the Thought Spiral pushes toward desaturation and chromatic fringing. Ultra adds ambient occlusion, 4K shadow maps and full-resolution rendering.
 
 ## Run it
 
@@ -104,7 +104,7 @@ Endings you've found are remembered in localStorage, and the results screen hint
 
 ## Settings and accessibility
 
-Master, music and effects volume, mouse sensitivity, invert Y, graphics quality (Low/Medium/High), Reduced Motion (no camera FOV pulses or shake, instant text, minimal UI animation), Reduced Anxiety Effects (softer vignette and heartbeat), and Mute. Dialogue never auto-advances and choices are untimed. Cutscenes can be skipped, and nothing flashes or strobes. If the frame rate drops below 40 FPS during the first few seconds, the game lowers its quality setting automatically.
+Master, music and effects volume, mouse sensitivity, invert Y, graphics quality (Low/Medium/High/Ultra), Reduced Motion (no camera FOV pulses or shake, instant text, minimal UI animation), Reduced Anxiety Effects (softer vignette and heartbeat), and Mute. Dialogue never auto-advances and choices are untimed. Cutscenes can be skipped, and nothing flashes or strobes. The game starts on Ultra. If the frame rate drops below 40 FPS during the first few seconds, it steps down one quality level at a time automatically.
 
 ## Project layout
 

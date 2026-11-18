@@ -14,6 +14,8 @@ export interface AptRefs {
   anchors: Record<string, THREE.Vector3>;
   door: THREE.Object3D;
   doorBox: Box;
+  /** Thin collider where the door rests when it's open (swung into the flat). */
+  doorOpenBox: Box;
   tv: ReturnType<typeof screenTexture>;
   bowlFood: THREE.Object3D;
   liftDisplay: ReturnType<typeof screenTexture>;
@@ -43,7 +45,7 @@ export function buildApartment(col: Collision): AptRefs {
 
   // ---------- floor & ceiling ----------
   for (let i = 0; i < 12; i++) {
-    b.box(-6 + i + 0.5, -0.1, 0, 0.98, 0.1, 9, i % 2 ? C.floor : C.floor2, { noShadow: true });
+    b.box(-6 + i + 0.5, -0.1, 0, 0.98, 0.1, 9, i % 2 ? C.floor : C.floor2, { gloss: true });
   }
   b.box(0, H, 0, 12.4, 0.1, 9.4, 0xf5ecdd, { noShadow: true, rotX: 0 });
 
@@ -287,6 +289,8 @@ export function buildApartment(col: Collision): AptRefs {
   door.add(plate);
   group.add(door);
   const doorBox = col.add(3.4 + APT_O.x, -4.6 + APT_O.z, 4.6 + APT_O.x, -4.4 + APT_O.z, true, 'aptDoor');
+  const doorOpenBox = col.add(3.33 + APT_O.x, -4.45 + APT_O.z, 3.47 + APT_O.x, -3.28 + APT_O.z, true, 'aptDoorOpen');
+  doorOpenBox.enabled = false;
 
   // ---------- bowl food (hidden until fed) + snack pile for ending C ----------
   const bowlFood = new THREE.Group();
@@ -358,7 +362,7 @@ export function buildApartment(col: Collision): AptRefs {
     liftCarLook: W(20.02, 1.15, -6.6),
   };
 
-  return { group, lights, corridorLights, anchors, door, doorBox, tv, bowlFood, snackPile, liftDisplay };
+  return { group, lights, corridorLights, anchors, door, doorBox, doorOpenBox, tv, bowlFood, snackPile, liftDisplay };
 }
 
 function xyz(v: THREE.Vector3) {
@@ -409,7 +413,7 @@ function buildCorridor(b: Batch, col: Collision) {
   const wall = 0xc9d3c5;
   const dado = 0x8d9c88;
   // floor (terrazzo) + ceiling
-  b.box(2, -0.1, -6, 24.4, 0.1, 3.2, 0xb9b4ab, { noShadow: true });
+  b.box(2, -0.1, -6, 24.4, 0.1, 3.2, 0xb9b4ab, { gloss: true });
   for (let i = 0; i < 40; i++) b.box(-9.6 + ((i * 7.3) % 23), 0.001, -7.3 + ((i * 1.7) % 2.6), 0.08, 0.004, 0.06, [0x8e8a83, 0xd8d3c9, 0x6f6b66][i % 3], { noShadow: true });
   b.box(2, H, -6, 24.4, 0.1, 3.2, 0xe8e8e2, { noShadow: true });
   // walls

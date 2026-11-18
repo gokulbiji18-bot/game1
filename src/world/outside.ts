@@ -45,17 +45,17 @@ export function buildOutside(col: Collision): OutsideRefs {
   ];
 
   // ---------- ground ----------
-  b.box(50, -0.22, -12, 220, 0.1, 70, 0x34323d, { noShadow: true }); // asphalt base (top -0.12)
+  b.box(50, -0.22, -12, 220, 0.1, 70, 0x4e4860, { gloss: true }); // asphalt base (top -0.12)
   // south sidewalk
-  b.box(49.5, -0.12, -1.5, 175, 0.12, 3, 0x9c968c, { noShadow: true });
-  b.box(49.5, -0.12, -2.95, 175, 0.14, 0.12, 0xc9c3b8, { noShadow: true });
+  b.box(49.5, -0.12, -1.5, 175, 0.12, 3, 0xdcc49c, { noShadow: true });
+  b.box(49.5, -0.12, -2.95, 175, 0.14, 0.12, 0xf3e6cc, { noShadow: true });
   // sidewalk tiles pattern
-  for (let x = -37; x < 136; x += 1.5) b.box(x, 0.001, -1.5, 0.04, 0.003, 2.9, 0x857f75, { noShadow: true });
+  for (let x = -37; x < 136; x += 1.5) b.box(x, 0.001, -1.5, 0.04, 0.003, 2.9, 0xc4a77c, { noShadow: true });
   // north sidewalk
-  b.box(49.5, -0.12, -12.5, 153, 0.12, 3, 0x9c968c, { noShadow: true });
-  b.box(49.5, -0.12, -11.05, 153, 0.14, 0.12, 0xc9c3b8, { noShadow: true });
+  b.box(49.5, -0.12, -12.5, 153, 0.12, 3, 0xdcc49c, { noShadow: true });
+  b.box(49.5, -0.12, -11.05, 153, 0.14, 0.12, 0xf3e6cc, { noShadow: true });
   // ground behind buildings / alley
-  b.box(30, -0.12, 5, 4, 0.12, 10, 0x8a8478, { noShadow: true });
+  b.box(30, -0.12, 5, 4, 0.12, 10, 0xcbb48c, { noShadow: true });
   // lane markings
   for (let x = -34; x < 134; x += 6) b.box(x, -0.118, -7, 3, 0.004, 0.15, 0xe9e4d6, { noShadow: true });
   // zebra crossing near our building
@@ -89,6 +89,14 @@ export function buildOutside(col: Collision): OutsideRefs {
   shopNorth(b, 8, 18, 0xf9c74f, 'TAILOR', 'ಟೈಲರ್');
   shopNorth(b, 18, 30, 0x577590, 'ATM • 24x7', '');
   park(b, 30, 62);
+  // the park: pines around the edge, bushes, rocks and flower clumps (kept off the central path)
+  for (const [x, z, sc] of [[32.5, -17, 1.1], [33.5, -24, 1.3], [32.8, -32, 1.2], [36.5, -37.5, 1.0], [42, -36.5, 1.25], [51, -37.8, 1.1], [57.5, -35, 1.35], [60, -28, 1.0], [59.8, -19.5, 1.2], [55.5, -16.2, 0.9], [38.5, -16.5, 0.8]] as const) pine(b, x, z, sc);
+  for (const [x, z, sc] of [[35.5, -20, 1], [41, -22.5, 1.2], [50.5, -23.5, 1], [54, -29.5, 1.3], [39, -30.5, 1.1], [44, -33, 0.9], [57, -24.5, 1]] as const) bush(b, x, z, sc);
+  for (const [x, z, sc] of [[37.5, -26, 1.2], [53, -33.5, 1], [42.5, -18.2, 0.8], [58.5, -31.5, 1.3]] as const) rock(b, x, z, sc);
+  for (const [x, z] of [[43.5, -15.8], [48.6, -15.8], [36.5, -28.5], [55.5, -21], [47.5, -30.5], [40, -34.5]]) flowers(b, x, z);
+  // greenery along the street: bushes against the north-side buildings and around tree pits
+  for (const x of [-24, -16, -8, 10.5, 20, 64, 72, 80, 88, 104, 112, 120]) bush(b, x, -13.55, 0.75);
+  for (const x of [-30, -22, 120.5, 126]) flowers(b, x, -0.45);
   residential(b, 62, 86, -14, -40, 12, 0xe5989b, 1);
   shopNorth(b, 86, 100, 0xffb703, 'MOBILES', 'ಮೊಬೈಲ್ಸ್');
   residential(b, 100, 126, -14, -40, 17, 0x8ecae6, 1, 'SKYLINE TOWERS');
@@ -112,14 +120,17 @@ export function buildOutside(col: Collision): OutsideRefs {
   // tube lights inside the two errand shops
   streetLights.push({ x: 1, y: 2.4, z: -15.6, color: 0xf3f8ff, intensity: 6, distance: 6 });
   streetLights.push({ x: 36, y: 2.4, z: 1.6, color: 0xf3f8ff, intensity: 6, distance: 6 });
+  const beams: Array<[number, number]> = [];
   const lampXs = [-32, -18, 13, 27, 41, 55, 76, 90, 112, 128];
   for (const x of lampXs) {
     streetLamp(b, x, -2.75, 1);
+    beams.push([x, -2.75 - 1.15]);
     streetLights.push({ x, y: 5, z: -3.6, color: 0xffb25e, intensity: 14, distance: 13 });
     pools.push([x, -3.4, 0xffa94d, 0.5]);
   }
   for (const x of [-20, 4, 22, 46, 70, 94, 116]) {
     streetLamp(b, x, -11.3, -1);
+    beams.push([x, -11.3 + 1.15]);
     streetLights.push({ x, y: 5, z: -10.4, color: 0xffb25e, intensity: 12, distance: 12 });
     pools.push([x, -10.6, 0xffa94d, 0.45]);
   }
@@ -173,6 +184,7 @@ export function buildOutside(col: Collision): OutsideRefs {
   // ---------- Namma Mart ----------
   const store = buildStore(b, col, group);
 
+  group.add(lampBeams(beams));
   // light pools on the ground
   for (const [x, z, color, op] of pools) {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(7, 7), glowMat(color, op));
@@ -234,7 +246,7 @@ export function buildOutside(col: Collision): OutsideRefs {
 function buildLobby(b: Batch) {
   const H = 3.4;
   // floor (checker marble)
-  for (let x = -6; x < 6; x++) for (let z = 0; z < 10; z++) b.box(x + 0.5, -0.05, z + 0.5, 1, 0.05, 1, (x + z) % 2 ? 0xe9e2d6 : 0xd6cdbd, { noShadow: true });
+  for (let x = -6; x < 6; x++) for (let z = 0; z < 10; z++) b.box(x + 0.5, -0.05, z + 0.5, 1, 0.05, 1, (x + z) % 2 ? 0xe9e2d6 : 0xd6cdbd, { gloss: true });
   b.box(0, H, 5, 12, 0.1, 10.4, 0xf2efe8, { noShadow: true });
   // ceiling lights
   for (const z of [3, 8]) b.box(0, H - 0.04, z, 1.6, 0.04, 0.5, 0xfff6e0, { glow: true });
@@ -489,7 +501,7 @@ function construction(b: Batch, x0: number, x1: number) {
 function park(b: Batch, x0: number, x1: number) {
   const cx = (x0 + x1) / 2;
   const w = x1 - x0;
-  b.box(cx, -0.12, -27, w, 0.16, 26, 0x5a8f4e, { noShadow: true });
+  b.box(cx, -0.12, -27, w, 0.16, 26, 0x86c94a, { noShadow: true });
   // fence with an opening
   for (let x = x0; x <= x1; x += 0.6) {
     if (x > cx - 2 && x < cx + 2) continue;
@@ -504,23 +516,57 @@ function park(b: Batch, x0: number, x1: number) {
   b.box(cx - 2, 2.1, -14.05, 0.1, 2.2, 0.1, 0x2d6a4f);
   b.box(cx + 2, 2.1, -14.05, 0.1, 2.2, 0.1, 0x2d6a4f);
   // path, benches, grass tufts
-  b.box(cx, 0.041, -20, 3, 0.01, 12, 0xc2b280, { noShadow: true });
+  b.box(cx, 0.041, -20, 3, 0.01, 12, 0xecd29a, { noShadow: true });
   b.box(cx - 3.2, 0, -19, 0.5, 0.45, 1.8, 0x6b4a35, { collide: 'low' });
   b.box(cx + 3.2, 0, -21, 0.5, 0.45, 1.8, 0x6b4a35, { collide: 'low' });
   for (let i = 0; i < 30; i++) {
     const x = x0 + 1 + ((i * 7.13) % (w - 2));
     const z = -15 - ((i * 3.7) % 24);
     if (Math.abs(x - cx) < 2) continue;
-    b.cone(x, 0.04, z, 0.12, 0.25, 0x7fb069, 4);
+    b.cone(x, 0.04, z, 0.12, 0.25, 0x5fae3c, 4);
   }
 }
 
 function tree(b: Batch, x: number, z: number, s: number) {
-  b.cyl(x, 0, z, 0.16 * s, 2.4 * s, 0x6d4c3d, 7, { collide: true, rTop: 0.11 * s });
-  b.sphere(x, 3.2 * s, z, 1.3 * s, 0x3f7f4a, { sy: 0.8 });
-  b.sphere(x + 0.7 * s, 2.8 * s, z + 0.3 * s, 0.9 * s, 0x4f9a5a, { sy: 0.8 });
-  b.sphere(x - 0.6 * s, 3.0 * s, z - 0.4 * s, 0.85 * s, 0x2f6b3c, { sy: 0.8 });
-  b.sphere(x, 3.9 * s, z + 0.2 * s, 0.8 * s, 0x5aa864, { sy: 0.8 });
+  b.cyl(x, 0.0, z, 0.75 * s, 0.03, 0x6fbf45, 10, { noShadow: true });
+  b.cyl(x, 0, z, 0.17 * s, 2.4 * s, 0x8a5a44, 7, { collide: true, rTop: 0.11 * s });
+  b.sphere(x, 3.2 * s, z, 1.3 * s, 0x4fa84a, { sy: 0.8, detail: 0 });
+  b.sphere(x + 0.7 * s, 2.8 * s, z + 0.3 * s, 0.9 * s, 0x6cc04f, { sy: 0.8, detail: 0 });
+  b.sphere(x - 0.6 * s, 3.0 * s, z - 0.4 * s, 0.85 * s, 0x3d8f45, { sy: 0.8, detail: 0 });
+  b.sphere(x, 3.9 * s, z + 0.2 * s, 0.8 * s, 0x8fd65a, { sy: 0.8, detail: 0 });
+}
+
+/** Tiered stylised pine, like the reference art: stacked faceted cones in two greens. */
+function pine(b: Batch, x: number, z: number, s: number) {
+  b.cyl(x, 0, z, 0.2 * s, 1.2 * s, 0x8a5a44, 7, { collide: true, rTop: 0.14 * s });
+  const tiers = 4;
+  for (let i = 0; i < tiers; i++) {
+    const r = (1.55 - i * 0.32) * s;
+    const y = (0.9 + i * 0.85) * s;
+    b.cone(x, y, z, r, 1.35 * s, i % 2 ? 0x5cbf55 : 0x3f9e4d, 8, { rotY: i * 0.4 });
+  }
+  b.cone(x, (0.9 + tiers * 0.85) * s, z, 0.35 * s, 0.8 * s, 0x8fd65a, 8);
+}
+
+function bush(b: Batch, x: number, z: number, s: number) {
+  b.sphere(x, 0.32 * s, z, 0.45 * s, 0x5cb84a, { sy: 0.75, detail: 0 });
+  b.sphere(x + 0.38 * s, 0.26 * s, z + 0.1 * s, 0.34 * s, 0x8fd14f, { sy: 0.75, detail: 0 });
+  b.sphere(x - 0.32 * s, 0.24 * s, z - 0.08 * s, 0.3 * s, 0x47a03f, { sy: 0.75, detail: 0 });
+}
+
+function rock(b: Batch, x: number, z: number, s: number) {
+  b.sphere(x, 0.18 * s, z, 0.5 * s, 0xa8939e, { sy: 0.65, detail: 0, rotY: x });
+  b.sphere(x + 0.45 * s, 0.1 * s, z + 0.2 * s, 0.25 * s, 0xbca7ae, { sy: 0.6, detail: 0 });
+}
+
+function flowers(b: Batch, x: number, z: number) {
+  const cols = [0xffb02e, 0xffd23f, 0xff7b54, 0xffffff];
+  for (let i = 0; i < 6; i++) {
+    const fx = x + Math.cos(i * 2.4) * 0.35 * ((i % 3) + 1) / 2;
+    const fz = z + Math.sin(i * 2.4) * 0.35 * ((i % 3) + 1) / 2;
+    b.cyl(fx, 0, fz, 0.012, 0.22, 0x4f9a3a, 4, { noShadow: true });
+    b.sphere(fx, 0.25, fz, 0.06, cols[i % cols.length], { detail: 0, noShadow: true });
+  }
 }
 
 function streetLamp(b: Batch, x: number, z: number, dir: 1 | -1) {
@@ -587,6 +633,52 @@ function cables(poles: number[]) {
   return new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x15131c }));
 }
 
+/** Soft additive cones under every street lamp; edges fade with the view angle so they read as haze. */
+function lampBeams(heads: Array<[number, number]>) {
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: new THREE.Color(1.0, 0.72, 0.42) }, uI: { value: 0.32 } },
+    vertexShader: /* glsl */ `
+      varying float vY;
+      varying vec3 vN;
+      varying vec3 vV;
+      void main() {
+        vec4 mv = modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+        vN = normalize(normalMatrix * mat3(instanceMatrix) * normal);
+        vV = normalize(-mv.xyz);
+        vY = uv.y;
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: /* glsl */ `
+      uniform vec3 uColor;
+      uniform float uI;
+      varying float vY;
+      varying vec3 vN;
+      varying vec3 vV;
+      void main() {
+        float edge = pow(clamp(abs(dot(normalize(vN), normalize(vV))), 0.0, 1.0), 2.0);
+        float grad = pow(clamp(vY, 0.0, 1.0), 2.4);
+        gl_FragColor = vec4(uColor * grad * edge * uI, 1.0);
+      }`,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    toneMapped: false,
+  });
+  // cylinder uv.y is 1 at the top (the lamp), 0 at the ground
+  const geo = new THREE.CylinderGeometry(0.16, 1.9, 4.85, 24, 1, true);
+  const im = new THREE.InstancedMesh(geo, mat, heads.length);
+  const d = new THREE.Object3D();
+  heads.forEach(([x, z], i) => {
+    d.position.set(x, 4.88 - 4.85 / 2, z);
+    d.updateMatrix();
+    im.setMatrixAt(i, d.matrix);
+  });
+  im.renderOrder = 2;
+  im.frustumCulled = false;
+  return im;
+}
+
 function rooftop(b: Batch, x0: number, x1: number, z0: number, z1: number, y: number) {
   const w = x1 - x0;
   const n = Math.max(1, Math.floor(w / 9));
@@ -651,10 +743,11 @@ function buildSky() {
   const g = new THREE.SphereGeometry(320, 24, 16);
   const pos = g.attributes.position;
   const cols = new Float32Array(pos.count * 3);
-  const top = new THREE.Color(0x0e1236);
-  const mid = new THREE.Color(0x3b2d6b);
-  const hor = new THREE.Color(0xe0707f);
-  const low = new THREE.Color(0xf6a75c);
+  // vivid cartoon dusk: periwinkle overhead, lilac, a coral band, warm peach at the horizon
+  const top = new THREE.Color(0x4d5fc4);
+  const mid = new THREE.Color(0x9a86e0);
+  const hor = new THREE.Color(0xff8fa3);
+  const low = new THREE.Color(0xffc48a);
   const c = new THREE.Color();
   for (let i = 0; i < pos.count; i++) {
     const y = pos.getY(i) / 320;
@@ -680,19 +773,32 @@ function buildSky() {
   const sg = new THREE.BufferGeometry();
   sg.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3));
   sky.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.8 })));
-  // soft dusk clouds
-  const cloudMat = new THREE.MeshBasicMaterial({ color: 0xc07a9a, fog: false, toneMapped: false, transparent: true, opacity: 0.55, depthWrite: false });
-  const cloudGeo = new THREE.SphereGeometry(1, 10, 6);
-  for (let i = 0; i < 14; i++) {
-    const a = (i / 14) * Math.PI * 2 + 0.3;
+  // puffy cartoon clouds: clusters of round lumps on a flat underside, lit pink from the sunset
+  const cloudTop = new THREE.MeshBasicMaterial({ color: 0xf0c9dc, fog: false, toneMapped: false });
+  const cloudBase = new THREE.MeshBasicMaterial({ color: 0xc898bd, fog: false, toneMapped: false });
+  const lump = new THREE.SphereGeometry(1, 16, 10);
+  const base = new THREE.CylinderGeometry(1, 1, 1, 20);
+  for (let i = 0; i < 11; i++) {
+    const a = (i / 11) * Math.PI * 2 + 0.35;
     const cl = new THREE.Group();
-    for (let k = 0; k < 4; k++) {
-      const m = new THREE.Mesh(cloudGeo, cloudMat);
-      m.scale.set(22 + k * 6, 4 + (k % 2) * 2, 12);
-      m.position.set(k * 18 - 26, (k % 2) * 2, (k % 3) * 4);
+    const n = 3 + (i % 3);
+    const width = n * 13;
+    for (let k = 0; k < n; k++) {
+      const r = 9 + ((k * 7 + i * 3) % 3) * 4 + (k === Math.floor(n / 2) ? 5 : 0);
+      const m = new THREE.Mesh(lump, cloudTop);
+      m.scale.set(r * 1.15, r, r * 0.8);
+      m.position.set(k * 13 - width / 2 + 6, r * 0.45, 0);
       cl.add(m);
     }
-    cl.position.set(Math.cos(a) * 230, 55 + (i % 4) * 14, Math.sin(a) * 230);
+    // flat, slightly darker underside
+    const b = new THREE.Mesh(base, cloudBase);
+    b.scale.set(width * 0.55, 3, 10);
+    b.rotation.x = Math.PI / 2;
+    b.rotation.z = Math.PI / 2;
+    b.scale.set(9, width * 0.62, 3);
+    b.position.set(0, 1, 0);
+    cl.add(b);
+    cl.position.set(Math.cos(a) * 250, 45 + (i % 4) * 16, Math.sin(a) * 250);
     cl.lookAt(0, cl.position.y, 0);
     cl.renderOrder = -8;
     sky.add(cl);
@@ -720,7 +826,7 @@ function buildStore(b: Batch, col: Collision, group: THREE.Group) {
   const x0 = 96, x1 = 118, z0 = 0, z1 = 18, H = 4.2;
   const cx = (x0 + x1) / 2;
   // floor tiles
-  for (let x = x0; x < x1; x += 1) for (let z = z0; z < z1; z += 1) b.box(x + 0.5, -0.04, z + 0.5, 1, 0.04, 1, (x + z) % 2 ? 0xf4f4f0 : 0xe1e3dc, { noShadow: true });
+  for (let x = x0; x < x1; x += 1) for (let z = z0; z < z1; z += 1) b.box(x + 0.5, -0.04, z + 0.5, 1, 0.04, 1, (x + z) % 2 ? 0xf4f4f0 : 0xe1e3dc, { gloss: true });
   b.box(cx, H, (z0 + z1) / 2, x1 - x0, 0.1, z1 - z0, 0xf7f7f2, { noShadow: true });
   // ceiling light panels
   for (let x = x0 + 3; x < x1 - 1; x += 4) for (let z = 3; z < z1; z += 4) b.box(x, H - 0.03, z, 1.8, 0.03, 0.6, 0xffffff, { glow: true });
@@ -913,7 +1019,7 @@ function buildStore(b: Batch, col: Collision, group: THREE.Group) {
   barrier.enabled = false;
 
   const lights: LightDef[] = [];
-  for (let x = x0 + 4; x < x1; x += 7) for (const z of [4, 12]) lights.push({ x, y: 3.6, z, color: 0xf3f8ff, intensity: 10, distance: 11 });
+  for (let x = x0 + 4; x < x1; x += 7) for (const z of [4, 12]) lights.push({ x, y: 3.6, z, color: 0xfff6e8, intensity: 6, distance: 10 });
 
   const anchors: Record<string, THREE.Vector3> = {
     cashier: V(106.0, 0, 3.5),

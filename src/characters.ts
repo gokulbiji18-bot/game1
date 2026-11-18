@@ -43,6 +43,19 @@ const G = {
 // ---- rig baking: merge the static parts under each joint into one mesh (toon + unlit),
 // add an inverted-hull outline for the anime look, and a soft contact shadow.
 const vToon = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: gradient });
+// Fresnel rim light: a thin glow on silhouettes, like anime key art. Tinted per zone by the game.
+const rimUniform = { value: new THREE.Color(0.22, 0.24, 0.38) };
+vToon.onBeforeCompile = (sh) => {
+  sh.uniforms.uRim = rimUniform;
+  sh.fragmentShader = 'uniform vec3 uRim;\n' + sh.fragmentShader.replace(
+    '#include <opaque_fragment>',
+    'outgoingLight += uRim * pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 2.6);\n#include <opaque_fragment>',
+  );
+};
+vToon.customProgramCacheKey = () => 'toon-rim';
+export function setCharacterRim(color: number, strength: number) {
+  rimUniform.value.setHex(color).multiplyScalar(strength);
+}
 const vBasic = new THREE.MeshBasicMaterial({ vertexColors: true });
 const outlineMat = (() => {
   const m = new THREE.MeshBasicMaterial({ color: 0x1c1424, side: THREE.BackSide });
@@ -155,6 +168,8 @@ export interface HumanoidOpts {
   scale?: number;
   belly?: number;
   bindi?: boolean;
+  iris?: number;
+  blush?: boolean;
 }
 
 interface Joints {
@@ -309,9 +324,14 @@ export class Humanoid {
     mesh(G.sphereLo, toon(darken(o.skin, 0.9)), head, [0, -0.04, hs * 0.97], [0.03, 0.025, 0.03]);
     // eyes (anime style: big dark ovals with a highlight)
     for (const side of [1, -1]) {
-      const eye = pivot(head, side * 0.095, 0.0, hs * 0.86);
-      mesh(G.sphere, basic(0x1b1426), eye, [0, 0, 0], [0.045, 0.06, 0.03]);
-      mesh(G.sphereLo, basic(0xffffff), eye, [side * -0.012, 0.022, 0.022], [0.014, 0.016, 0.01]);
+      // anime eye: white, coloured iris, pupil, two catch-lights and a lash line
+      const eye = pivot(head, side * 0.097, 0.0, hs * 0.86);
+      mesh(G.sphere, basic(0xf3ece2), eye, [side * 0.006, 0, -0.006], [0.044, 0.056, 0.024]);
+      mesh(G.sphere, basic(o.iris ?? 0x5a3a22), eye, [side * -0.004, -0.002, 0.004], [0.039, 0.054, 0.026]);
+      mesh(G.sphere, basic(0x140e1a), eye, [side * -0.004, -0.004, 0.011], [0.023, 0.032, 0.024]);
+      mesh(G.sphereLo, basic(0xffffff), eye, [side * -0.014, 0.018, 0.03], [0.013, 0.015, 0.008]);
+      mesh(G.sphereLo, basic(0xffffff), eye, [side * 0.01, -0.024, 0.03], [0.006, 0.006, 0.005]);
+      mesh(G.box, basic(0x1b1426), eye, [0, 0.054, 0.016], [0.1, 0.018, 0.02], [0, 0, side * 0.14]);
       this.eyes.push(eye);
       const brow = mesh(G.box, hair, head, [side * 0.095, 0.1, hs * 0.9], [0.09, 0.022, 0.02]);
       this.brows.push(brow);
@@ -361,7 +381,12 @@ export class Humanoid {
     this.sweatDrop.visible = false;
 
     this.j = { hips, torso, head, armL: arms[0], armR: arms[1], foreL: fores[0], foreR: fores[1], legL: legs[0], legR: legs[1], kneeL: knees[0], kneeR: knees[1] };
-    bakeRig(R, new Set<THREE.Object3D>([...this.brows, this.mouth, this.sweatDrop]), this.outlines);
+    const keep = new Set<THREE.Object3D>([...this.brows, this.mouth, this.sweatDrop]);
+    if (o.blush) {
+      const blushMat = new THREE.MeshBasicMaterial({ color: 0xff7f8e, transparent: true, opacity: 0.32, depthWrite: false });
+      for (const side of [1, -1]) keep.add(mesh(G.sphereLo, blushMat, head, [side * 0.135, -0.065, hs * 0.86], [0.045, 0.022, 0.012]));
+    }
+    bakeRig(R, keep, this.outlines);
     this.blob = addBlob(R, 0.9);
     const s = o.scale ?? 1;
     R.scale.setScalar(s);

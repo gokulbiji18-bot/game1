@@ -210,8 +210,9 @@ export class Story {
     const g = this.g;
     this.doorOpen = open;
     g.apt.doorBox.enabled = !open;
+    g.apt.doorOpenBox.enabled = open;
     const from = g.apt.door.rotation.y;
-    const to = open ? Math.PI / 2 : 0;
+    const to = open ? -Math.PI / 2 : 0;
     if (instant) {
       g.apt.door.rotation.y = to;
       return Promise.resolve();
@@ -901,7 +902,7 @@ export class Story {
       g.anx.add(22);
       g.ui.warning('⚠ WARNING: HUMANS DETECTED');
       g.cam.shake = 0.3;
-      await this.shot(W(3.2, 2.2, -5.0), W(9.8, 1.3, -6.6), 0.8);
+      await this.shot(W(2.3, 2.5, -5.35), W(9.8, 1.2, -6.6), 0.8);
       this.bubble('uncle', '...and I told him, that is NOT how you park a car!', 2.6);
       await g.wait(1.4);
       this.bubble('aunty', 'Exactly! These people!', 2.2);

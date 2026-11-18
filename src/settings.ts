@@ -1,4 +1,4 @@
-export type Quality = 'low' | 'medium' | 'high';
+export type Quality = 'low' | 'medium' | 'high' | 'ultra';
 
 export interface Settings {
   master: number;
@@ -19,7 +19,7 @@ const defaults: Settings = {
   music: 0.6,
   sfx: 0.8,
   sensitivity: 1,
-  quality: 'high',
+  quality: 'ultra',
   reducedMotion: false,
   reducedAnxiety: false,
   muted: false,

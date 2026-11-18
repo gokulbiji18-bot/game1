@@ -13,6 +13,8 @@ import { NPC, castDefs } from './npc';
 import { Cat } from './characters';
 import { LightPool, LightDef, setGlowBoost } from './world/builder';
 import { Post } from './post';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { setCharacterRim } from './characters';
 import { buildApartment, AptRefs } from './world/apartment';
 import type { OutsideRefs } from './world/outside';
 import { Vehicle, makeAuto, makeScooter, PATHS } from './vehicles';
@@ -56,12 +58,14 @@ interface ZonePreset {
   exposure: number;
 }
 
+// Bright, clean evening: strong coloured fill so shadows stay soft and violet instead of black,
+// a low warm "last light" key outside, and lifted exposure everywhere.
 const PRESETS: Record<Zone, ZonePreset> = {
-  apartment: { hemiSky: 0xffe0c2, hemiGround: 0x3a2c4a, hemi: 1.05, dir: 0.9, dirColor: 0xffd2a1, dirOffset: [-3, 9, 2], bg: 0x120f19, fog: 0x120f19, fogNear: 60, fogFar: 300, exposure: 1.0 },
-  corridor: { hemiSky: 0xe8f0ff, hemiGround: 0x5a5f66, hemi: 1.2, dir: 0.6, dirColor: 0xe8f0ff, dirOffset: [2, 9, 1], bg: 0x111317, fog: 0x111317, fogNear: 60, fogFar: 300, exposure: 1.0 },
-  lobby: { hemiSky: 0xfff3e0, hemiGround: 0x5a4a3a, hemi: 1.25, dir: 0.7, dirColor: 0xfff0d0, dirOffset: [-2, 9, 2], bg: 0x2b2648, fog: 0x2b2648, fogNear: 40, fogFar: 200, exposure: 1.0 },
-  street: { hemiSky: 0x8f8fe0, hemiGround: 0x4a3030, hemi: 0.95, dir: 0.85, dirColor: 0xa9b8ff, dirOffset: [-6, 14, -5], bg: 0x2b2648, fog: 0x2e2850, fogNear: 22, fogFar: 95, exposure: 1.05 },
-  store: { hemiSky: 0xffffff, hemiGround: 0x8a8a8a, hemi: 1.6, dir: 0.9, dirColor: 0xffffff, dirOffset: [-2, 10, 3], bg: 0x2b2648, fog: 0x2e2850, fogNear: 40, fogFar: 200, exposure: 1.0 },
+  apartment: { hemiSky: 0xffe6cc, hemiGround: 0x7a6090, hemi: 1.55, dir: 1.1, dirColor: 0xffd6a8, dirOffset: [-3, 9, 2], bg: 0x241a33, fog: 0x241a33, fogNear: 60, fogFar: 300, exposure: 1.12 },
+  corridor: { hemiSky: 0xf0f6ff, hemiGround: 0x7c8a8a, hemi: 1.6, dir: 0.7, dirColor: 0xf0f4ff, dirOffset: [2, 9, 1], bg: 0x1d2028, fog: 0x1d2028, fogNear: 60, fogFar: 300, exposure: 1.1 },
+  lobby: { hemiSky: 0xfff3e0, hemiGround: 0x8a7458, hemi: 1.65, dir: 0.8, dirColor: 0xfff0d0, dirOffset: [-2, 9, 2], bg: 0x5a4a8a, fog: 0x5a4a8a, fogNear: 40, fogFar: 200, exposure: 1.1 },
+  street: { hemiSky: 0xb3a8ff, hemiGround: 0x8a5a78, hemi: 1.55, dir: 1.55, dirColor: 0xffb089, dirOffset: [-14, 9, 6], bg: 0x5a4a8a, fog: 0x8a6fa8, fogNear: 35, fogFar: 140, exposure: 1.18 },
+  store: { hemiSky: 0xfff8ee, hemiGround: 0x9a958a, hemi: 1.15, dir: 0.75, dirColor: 0xffffff, dirOffset: [-2, 10, 3], bg: 0x5a4a8a, fog: 0x8a6fa8, fogNear: 60, fogFar: 300, exposure: 0.92 },
 };
 
 const CEILING: Record<Zone, number | null> = { apartment: 3.0, corridor: 3.0, lobby: 3.4, store: 4.2, street: null };
@@ -138,7 +142,11 @@ export class Game {
     this.dir.shadow.camera.far = 40;
     this.dir.shadow.bias = -0.0006;
     this.dir.shadow.normalBias = 0.03;
-    this.pool = new LightPool(this.scene, 4);
+    this.pool = new LightPool(this.scene, 6);
+    // image-based ambient light so glossy floors and asphalt have something to reflect
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
     progress(0.25, 'Loading social anxiety...');
     await frame();
 
@@ -272,11 +280,11 @@ export class Game {
   // ------------------------------------------------------------------ quality
   applyQuality(q: Quality, notify: boolean) {
     const dpr = window.devicePixelRatio || 1;
-    this.renderer.setPixelRatio(q === 'high' ? Math.min(dpr, 1.75) : q === 'medium' ? Math.min(dpr, 1.25) : 1);
+    this.renderer.setPixelRatio(q === 'ultra' ? Math.min(dpr, 2) : q === 'high' ? Math.min(dpr, 1.75) : q === 'medium' ? Math.min(dpr, 1.25) : 1);
     // bloom + grading pipeline on medium/high; plain forward render on low
     this.post?.dispose();
     this.post = null;
-    if (q !== 'low') this.post = new Post(this.renderer, this.scene, this.cam.cam, q === 'high' ? 4 : 0);
+    if (q !== 'low') this.post = new Post(this.renderer, this.scene, this.cam.cam, q === 'high' || q === 'ultra' ? 4 : 0, q === 'ultra');
     setGlowBoost(!!this.post);
     this.anx.postActive = !!this.post;
     const shadows = q !== 'low';
@@ -287,7 +295,7 @@ export class Game {
         if (m) (Array.isArray(m) ? m : [m]).forEach((x) => (x.needsUpdate = true));
       });
     }
-    const size = q === 'high' ? 2048 : 1024;
+    const size = q === 'ultra' ? 4096 : q === 'high' ? 2048 : 1024;
     if (this.dir.shadow.mapSize.x !== size) {
       this.dir.shadow.mapSize.set(size, size);
       this.dir.shadow.map?.dispose();
@@ -537,6 +545,9 @@ export class Game {
     fog.far = p.fogFar;
     this.renderer.toneMappingExposure = p.exposure;
     this.cam.distance = { apartment: 3.7, corridor: 3.3, lobby: 3.8, street: 4.8, store: 4.3 }[z];
+    this.scene.environmentIntensity = { apartment: 0.22, corridor: 0.3, lobby: 0.3, street: 0.07, store: 0.12 }[z];
+    const rim = { apartment: [0xb08cff, 0.35], corridor: [0xcfe0ff, 0.25], lobby: [0xffe2b8, 0.25], street: [0x7f95ff, 0.45], store: [0xffffff, 0.2] }[z];
+    setCharacterRim(rim[0], rim[1]);
     const inApt = z === 'apartment' || z === 'corridor';
     this.aptGroup.visible = inApt;
     if (this.out) this.out.group.visible = !inApt;
@@ -581,7 +592,7 @@ export class Game {
       this.fpsFrames = 0;
       this.fpsChecks++;
       if (fps < 40 && settings.quality !== 'low') {
-        settings.quality = settings.quality === 'high' ? 'medium' : 'low';
+        settings.quality = ({ ultra: 'high', high: 'medium', medium: 'low', low: 'low' } as const)[settings.quality];
         saveSettings();
         this.ui.syncSettings();
         this.applyQuality(settings.quality, false);
