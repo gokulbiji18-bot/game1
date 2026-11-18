@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Batch, LightDef } from './builder';
 import { Collision, Box } from '../collision';
+import type { PropSpec } from './props';
 import { posterTexture, skylineTexture, screenTexture, drawTV, drawMonitor, signTexture, rangoliTexture, glowTexture, labelTexture } from './textures';
 
 // Aarav's apartment (flat 302) and the third-floor corridor.
@@ -44,26 +45,24 @@ export function buildApartment(col: Collision): AptRefs {
   group.name = 'apartment';
 
   // ---------- floor & ceiling ----------
-  for (let i = 0; i < 12; i++) {
-    b.box(-6 + i + 0.5, -0.1, 0, 0.98, 0.1, 9, i % 2 ? C.floor : C.floor2, { gloss: true });
-  }
-  b.box(0, H, 0, 12.4, 0.1, 9.4, 0xf5ecdd, { noShadow: true, rotX: 0 });
+  b.box(0, -0.1, 0, 12, 0.1, 9, 0xffffff, { surf: 'wood' });
+  b.box(0, H, 0, 12.4, 0.1, 9.4, 0xf5ecdd, { surf: 'plaster' });
 
   // ---------- walls ----------
   // north wall with door opening (x 3.4..4.6)
-  b.box((-6.1 + 3.4) / 2, 0, -4.5, 9.5, H, 0.2, C.wall, { collide: true });
-  b.box((4.6 + 6.1) / 2, 0, -4.5, 1.5, H, 0.2, C.wall, { collide: true });
-  b.box(4, 2.25, -4.5, 1.2, H - 2.25, 0.2, C.wall);
+  b.box((-6.1 + 3.4) / 2, 0, -4.5, 9.5, H, 0.2, C.wall, { collide: true, surf: 'plaster' });
+  b.box((4.6 + 6.1) / 2, 0, -4.5, 1.5, H, 0.2, C.wall, { collide: true, surf: 'plaster' });
+  b.box(4, 2.25, -4.5, 1.2, H - 2.25, 0.2, C.wall, { surf: 'plaster' });
   // accent wall behind TV
-  b.box(-1, 0, -4.38, 3.6, H, 0.04, C.accent);
+  b.box(-1, 0, -4.38, 3.6, H, 0.04, C.accent, { surf: 'plaster' });
   // south wall with window (x -3..1, y .9..2.4)
-  b.box(-4.55, 0, 4.5, 3.1, H, 0.2, C.wall, { collide: true });
-  b.box(3.55, 0, 4.5, 5.1, H, 0.2, C.wall, { collide: true });
-  b.box(-1, 0, 4.5, 4, 0.9, 0.2, C.wall, { collide: true });
-  b.box(-1, 2.4, 4.5, 4, H - 2.4, 0.2, C.wall);
+  b.box(-4.55, 0, 4.5, 3.1, H, 0.2, C.wall, { collide: true, surf: 'plaster' });
+  b.box(3.55, 0, 4.5, 5.1, H, 0.2, C.wall, { collide: true, surf: 'plaster' });
+  b.box(-1, 0, 4.5, 4, 0.9, 0.2, C.wall, { collide: true, surf: 'plaster' });
+  b.box(-1, 2.4, 4.5, 4, H - 2.4, 0.2, C.wall, { surf: 'plaster' });
   // west / east
-  b.box(-6, 0, 0, 0.2, H, 9.2, C.wall, { collide: true });
-  b.box(6, 0, 0, 0.2, H, 9.2, C.wall, { collide: true });
+  b.box(-6, 0, 0, 0.2, H, 9.2, C.wall, { collide: true, surf: 'plaster' });
+  b.box(6, 0, 0, 0.2, H, 9.2, C.wall, { collide: true, surf: 'plaster' });
   // baseboards
   b.box(-1.3, 0, -4.38, 9.3, 0.1, 0.04, C.trim);
   b.box(0, 0, 4.38, 11.8, 0.1, 0.04, C.trim);
@@ -84,36 +83,16 @@ export function buildApartment(col: Collision): AptRefs {
   b.box(1.35, 0.4, 4.25, 0.5, 2.5, 0.1, 0x8e6c8a);
   b.box(-1, 2.62, 4.3, 5.2, 0.04, 0.04, 0x333333);
   // succulent on the sill
-  b.cyl(0.4, 0.91, 4.3, 0.09, 0.14, C.pot);
-  b.sphere(0.4, 1.1, 4.3, 0.1, C.plant, { sy: 0.8 });
 
   // ---------- living area ----------
   // rug
   b.box(-1, 0, 0.4, 3.9, 0.012, 3.3, 0x3d335c, { noShadow: true });
   b.box(-1, 0.012, 0.4, 3.6, 0.01, 3.0, 0xc7b5e6, { noShadow: true });
-  // sofa (faces north toward TV)
-  b.box(-1, 0, 2.45, 2.5, 0.42, 0.95, C.sofaDark, { collide: 'low' });
-  b.box(-1.6, 0.42, 2.35, 1.12, 0.14, 0.75, C.sofa);
-  b.box(-0.4, 0.42, 2.35, 1.12, 0.14, 0.75, C.sofa);
-  b.box(-1, 0.42, 2.8, 2.5, 0.6, 0.26, C.sofa);
-  b.box(-2.15, 0.42, 2.45, 0.22, 0.28, 0.95, C.sofaDark);
-  b.box(0.15, 0.42, 2.45, 0.22, 0.28, 0.95, C.sofaDark);
-  b.box(-1.95, 0.56, 2.6, 0.42, 0.38, 0.14, 0xff9f43, { rotZ: 0.25, rotX: -0.25 });
-  b.box(-0.05, 0.56, 2.6, 0.4, 0.36, 0.14, 0x8e7dbe, { rotZ: -0.2, rotX: -0.25 });
-  b.box(-0.7, 0.56, 2.45, 0.9, 0.04, 0.7, 0x3c8d93, { rotY: 0.2 }); // blanket
-  // coffee table
-  b.box(-1, 0.36, 0.3, 1.3, 0.06, 0.66, C.wood, { collide: 'low' });
-  for (const [x, z] of [[-1.55, 0.05], [-0.45, 0.05], [-1.55, 0.55], [-0.45, 0.55]]) b.box(x, 0, z, 0.06, 0.36, 0.06, C.dark);
-  b.cyl(-1.35, 0.42, 0.25, 0.05, 0.1, 0xffffff); // mug
-  b.box(-0.7, 0.42, 0.35, 0.22, 0.03, 0.1, C.dark, { rotY: 0.4 }); // remote
-  b.box(-0.9, 0.42, 0.15, 0.2, 0.04, 0.28, 0xe63946, { rotY: -0.3 }); // manga
-  b.box(-1.1, 0.42, 0.5, 0.26, 0.06, 0.16, 0x222222); // controller
   // pizza box on the floor (lived-in)
   b.box(0.7, 0, 1.1, 0.5, 0.06, 0.5, 0xd9b38c, { rotY: 0.5 });
   // TV + console
   b.box(-1, 0, -4.12, 2.7, 0.48, 0.48, C.dark, { collide: 'low' });
   b.box(-1, 0.48, -4.15, 0.9, 0.08, 0.12, 0x111111); // soundbar
-  b.box(-1.9, 0.48, -4.1, 0.38, 0.08, 0.3, 0xf2f2f2); // console
   b.box(-1, 0.95, -4.32, 2.25, 1.3, 0.06, 0x0b0b10);
   const tv = screenTexture((g, w, h) => drawTV(g, w, h, 'menu'), 384, 216);
   b.plane(-1, 1.6, -4.285, 2.12, 1.19, tv.texture, { basic: true });
@@ -136,9 +115,6 @@ export function buildApartment(col: Collision): AptRefs {
     }
   }
   // monstera + plants
-  plant(b, 2.55, -3.95, 1.0);
-  plant(b, -5.5, 4.0, 0.7);
-  plant(b, 5.45, 0.2, 0.8);
   // hanging plant in the corner
   b.cyl(-5.6, 2.4, -4.0, 0.15, 0.2, 0xdedede);
   for (let i = 0; i < 6; i++) b.sphere(-5.6 + Math.cos(i) * 0.15, 2.3 - i * 0.08, -4.0 + Math.sin(i) * 0.15, 0.1, C.plant2);
@@ -171,13 +147,6 @@ export function buildApartment(col: Collision): AptRefs {
   // PC tower with RGB
   b.box(-5.5, 0, -3.95, 0.45, 0.95, 0.22, 0x15151c, { collide: true });
   b.box(-5.5, 0.1, -3.835, 0.38, 0.8, 0.01, 0x00bbf9, { glow: true });
-  // gaming chair
-  b.box(-4.65, 0.45, -2.6, 0.6, 0.12, 0.6, 0x1c1c22, { collide: 'low' });
-  b.box(-4.33, 0.55, -2.6, 0.14, 0.95, 0.56, 0x1c1c22, { rotZ: -0.12 });
-  b.box(-4.3, 0.75, -2.6, 0.16, 0.5, 0.2, 0x9b5de5, { rotZ: -0.12 });
-  b.cyl(-4.65, 0, -2.6, 0.04, 0.45, 0x333333);
-  b.cyl(-4.65, 0, -2.6, 0.3, 0.05, 0x333333, 5);
-  b.box(-4.35, 1.0, -2.75, 0.3, 0.5, 0.08, 0x3d405b, { rotZ: -0.3 }); // hoodie draped
   // posters
   b.plane(-5.89, 1.95, -2.6, 0.75, 1.05, posterTexture(0), { rotY: Math.PI / 2 });
   b.plane(-3.6, 1.8, -4.39, 0.7, 0.98, posterTexture(1), { rotY: 0 });
@@ -204,8 +173,6 @@ export function buildApartment(col: Collision): AptRefs {
   b.box(-4.9, 0.54, 2.85, 1.95, 0.08, 1.4, 0x355c7d, { rotY: 0.03 });
   b.box(-4.9, 0.54, 4.0, 1.2, 0.14, 0.4, 0xffffff);
   b.box(-4.9, 0, 4.42, 2.0, 1.0, 0.08, 0x4a3b30);
-  b.box(-3.55, 0, 4.1, 0.45, 0.5, 0.4, 0x6b4a35, { collide: 'low' });
-  b.cyl(-3.55, 0.5, 4.1, 0.08, 0.25, 0xffe3b0, 8, { glow: true });
   // fairy lights over the bed
   for (let i = 0; i <= 14; i++) {
     const x = -5.85 + i * 0.13;
@@ -227,7 +194,6 @@ export function buildApartment(col: Collision): AptRefs {
   b.cyl(4.45, 0.97, 4.1, 0.09, 0.01, 0x444444, 10);
   b.cyl(4.75, 0.97, 4.1, 0.09, 0.01, 0x444444, 10);
   b.cyl(4.45, 0.98, 4.1, 0.13, 0.1, 0xb0b8c0, 10); // pressure-cooker-ish pot
-  b.cyl(5.5, 0.93, 4.15, 0.08, 0.2, 0x264653); // kettle
   for (let i = 0; i < 4; i++) b.cyl(3.6 + i * 0.12, 0.93, 4.3, 0.04, 0.1, [0xe9c46a, 0xe76f51, 0xf4a261, 0x2a9d8f][i], 6);
   // cat food container (empty!)
   b.cyl(2.35, 0.93, 4.05, 0.13, 0.32, 0xcde7f0, 12);
@@ -239,19 +205,10 @@ export function buildApartment(col: Collision): AptRefs {
   b.box(5.11, 0.6, 2.25, 0.03, 0.25, 0.04, 0x9aa5ad);
   b.box(5.115, 1.1, 2.55, 0.01, 0.01, 0.8, 0x9aa5ad);
   for (let i = 0; i < 5; i++) b.box(5.115, 1.3 + (i % 3) * 0.15, 2.5 + (i - 2) * 0.13, 0.02, 0.08, 0.08, [0xff595e, 0xffca3a, 0x8ac926, 0x1982c4, 0x6a4c93][i]);
-  // small dining table + stools
-  b.cyl(3.1, 0, 1.0, 0.05, 0.75, C.dark);
-  b.cyl(3.1, 0.75, 1.0, 0.45, 0.04, C.wood, 14, { collide: 'low' });
-  b.cyl(2.45, 0, 1.2, 0.18, 0.5, 0xf4a261, 10, { collide: 'low' });
-  b.cyl(3.75, 0, 0.8, 0.18, 0.5, 0xf4a261, 10, { collide: 'low' });
   // cat bowl
   b.cyl(3.9, 0, 2.6, 0.17, 0.08, 0xff6f91, 14, { rTop: 0.2 });
   b.cyl(3.9, 0.075, 2.6, 0.14, 0.01, 0x7a2e45, 14);
   b.cyl(4.25, 0, 2.6, 0.13, 0.06, 0x64b5f6, 14, { rTop: 0.15 });
-  // wall clock (7:42)
-  b.cyl(5.88, 2.1, 0.8, 0.22, 0.03, 0xffffff, 16, { rotZ: Math.PI / 2 });
-  b.box(5.85, 2.1, 0.8, 0.01, 0.15, 0.02, 0x222222, { rotX: 1.1 });
-  b.box(5.85, 2.1, 0.8, 0.01, 0.11, 0.02, 0x222222, { rotX: -2.4 });
   // kitchen pendant
   b.cyl(3.1, 2.55, 1.0, 0.22, 0.2, 0xffe0a8, 10, { rTop: 0.08, glow: true });
   b.cyl(3.1, 2.75, 1.0, 0.008, 0.25, 0x222222);
@@ -304,7 +261,7 @@ export function buildApartment(col: Collision): AptRefs {
   bowlFood.visible = false;
   group.add(bowlFood);
   const snackPile = new THREE.Group();
-  snackPile.position.set(-1 + APT_O.x, 0.42, 0.3 + APT_O.z);
+  snackPile.position.set(-1 + APT_O.x, 0.39, 0.3 + APT_O.z);
   snackPile.visible = false;
   group.add(snackPile);
 
@@ -413,16 +370,15 @@ function buildCorridor(b: Batch, col: Collision) {
   const wall = 0xc9d3c5;
   const dado = 0x8d9c88;
   // floor (terrazzo) + ceiling
-  b.box(2, -0.1, -6, 24.4, 0.1, 3.2, 0xb9b4ab, { gloss: true });
-  for (let i = 0; i < 40; i++) b.box(-9.6 + ((i * 7.3) % 23), 0.001, -7.3 + ((i * 1.7) % 2.6), 0.08, 0.004, 0.06, [0x8e8a83, 0xd8d3c9, 0x6f6b66][i % 3], { noShadow: true });
-  b.box(2, H, -6, 24.4, 0.1, 3.2, 0xe8e8e2, { noShadow: true });
+  b.box(2, -0.1, -6, 24.4, 0.1, 3.2, 0xffffff, { surf: 'terrazzo' });
+  b.box(2, H, -6, 24.4, 0.1, 3.2, 0xe8e8e2, { surf: 'plaster' });
   // walls
-  b.box(2, 0, -7.6, 24.4, H, 0.2, wall, { collide: true });
+  b.box(2, 0, -7.6, 24.4, H, 0.2, wall, { collide: true, surf: 'plaster' });
   b.box(2, 0, -7.48, 24.2, 1.0, 0.04, dado);
-  b.box(-8.05, 0, -4.5, 3.9, H, 0.2, wall, { collide: true });
-  b.box(10.05, 0, -4.5, 8.1, H, 0.2, wall, { collide: true });
-  b.box(-10.1, 0, -6, 0.2, H, 3.4, wall, { collide: true });
-  b.box(14.1, 0, -6, 0.2, H, 3.4, wall, { collide: true });
+  b.box(-8.05, 0, -4.5, 3.9, H, 0.2, wall, { collide: true, surf: 'plaster' });
+  b.box(10.05, 0, -4.5, 8.1, H, 0.2, wall, { collide: true, surf: 'plaster' });
+  b.box(-10.1, 0, -6, 0.2, H, 3.4, wall, { collide: true, surf: 'plaster' });
+  b.box(14.1, 0, -6, 0.2, H, 3.4, wall, { collide: true, surf: 'plaster' });
   // dado on south side (corridor face of the apartment wall)
   b.box(2, 0, -4.62, 24.2, 1.0, 0.04, dado);
   // fluorescent tubes
@@ -471,12 +427,7 @@ function buildCorridor(b: Batch, col: Collision) {
   b.box(-9.9, 1.0, -5.6, 0.04, 0.05, 0.2, 0xd4d4d4);
   b.plane(-9.9, 2.5, -6, 0.8, 0.25, signTexture('STAIRS ↓', { bg: '#2d6a4f', fg: '#fff', w: 256, h: 80 }), { rotY: Math.PI / 2 });
   // fire extinguisher, plants, meter box
-  b.cyl(0, 0.4, -7.38, 0.09, 0.5, 0xd62828);
-  b.box(0, 0.88, -7.38, 0.06, 0.08, 0.06, 0x222222);
   b.box(2.5, 1.5, -7.46, 0.6, 0.8, 0.12, 0x9aa5ad);
-  plant(b, -9.4, -7.05, 0.75);
-  plant(b, 13.5, -5.0, 0.8);
-  plant(b, 1.6, -4.95, 0.6);
   b.plane(-2, 2.3, -7.46, 0.5, 0.16, signTexture('FLOOR 3', { bg: '#264653', fg: '#fff', w: 192, h: 64 }));
   void col;
 }
@@ -518,3 +469,37 @@ export function drawLiftDisplay(g: CanvasRenderingContext2D, w: number, h: numbe
   g.font = '900 40px ui-monospace, Menlo, monospace';
   g.fillText(`${arrow}${floor}`, w / 2, h / 2 + 2);
 }
+
+/** Real 3D models (Poly Haven, CC0) for the flat and the corridor, in apartment-local coordinates. */
+export const APT_PROPS: PropSpec[] = [
+  // living room
+  { m: 'sofa_03', x: -1, z: 2.5, r: Math.PI, w: 2.55, col: 'low' },
+  { m: 'modern_coffee_table_01', x: -1, z: 0.3, r: Math.PI / 2, col: 'low' },
+  { m: 'gaming_console', x: -1.9, z: -4.1, y: 0.48, r: 0 },
+  { m: 'ceiling_fan', x: -1, z: 0.6, hang: 3.0 },
+  { m: 'pachira_aquatica_01', keep: '_d$', x: 2.55, z: -3.9, h: 1.65, col: 'low' },
+  { m: 'potted_plant_04', x: 0.4, z: 4.3, y: 0.91 },
+  { m: 'hanging_picture_frame_01', x: -5.86, z: 0.7, y: 1.55, r: Math.PI / 2, h: 0.7 },
+  // gaming corner
+  { m: 'modern_arm_chair_01', x: -4.6, z: -2.6, r: -Math.PI / 2, col: 'low' },
+  { m: 'desk_lamp_arm_01', x: -5.6, z: -1.85, y: 0.77, r: Math.PI / 2, h: 0.55 },
+  { m: 'potted_plant_04', x: -5.6, z: -3.45, y: 0.77 },
+  // bedroom corner
+  { m: 'painted_wooden_nightstand', x: -3.55, z: 4.1, r: Math.PI, col: 'low' },
+  { m: 'potted_plant_01', x: -5.45, z: 3.95, col: 'low' },
+  // kitchen + dining
+  { m: 'round_wooden_table_01', keep: 'round_wooden_table_01$', x: 3.1, z: 1.0, h: 0.76, col: 'low' },
+  { m: 'plastic_monobloc_chair_01', x: 2.35, z: 1.3, r: 1.9, col: 'low' },
+  { m: 'plastic_monobloc_chair_01', x: 3.85, z: 0.7, r: -1.25, col: 'low' },
+  { m: 'tea_set_01', keep: '(teapot_01|cup_small)', x: 3.05, z: 1.0, y: 0.76 },
+  { m: 'vintage_electric_kettle', x: 5.45, z: 4.15, y: 0.93, r: Math.PI },
+  { m: 'bananas', x: 3.9, z: 4.2, y: 0.93, r: 0.3 },
+  { m: 'wall_clock', x: 5.87, z: 0.8, y: 1.85, r: -Math.PI / 2 },
+  { m: 'potted_plant_02', x: 5.4, z: 0.2, col: 'low' },
+  // corridor
+  { m: 'korean_fire_extinguisher_01', x: 0, z: -7.32, y: 0.25, r: 0 },
+  { m: 'security_camera_01', x: 13.9, z: -7.2, y: 2.55, r: -Math.PI / 2 },
+  { m: 'potted_plant_02', x: -9.35, z: -7.05, h: 0.7, col: 'low' },
+  { m: 'potted_plant_01', x: 13.45, z: -5.0, h: 1.1, col: 'low' },
+  { m: 'potted_plant_02', x: 1.6, z: -4.95, h: 0.6, col: 'low' },
+];

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { Collision } from '../collision';
+import { SurfaceId, surfaceMaterial } from './materials';
 
 // Static geometry is baked with vertex colors and merged into a couple of meshes per area,
 // which keeps draw calls tiny no matter how much furniture we add.
@@ -97,7 +98,7 @@ export function withDetail(m: THREE.MeshStandardMaterial, strength: number, bump
   return m;
 }
 
-export const litMaterial = withDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.9, metalness: 0 }), 0.6, 0);
+export const litMaterial = withDetail(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.78, metalness: 0 }), 0.6, 0);
 /** Polished floors and asphalt: catches lamp highlights and environment reflections. */
 export const glossMaterial = withDetail(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.42, metalness: 0.0, envMapIntensity: 1.0 }), 0.4, 0);
 export const glowMaterial = new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false });
@@ -147,12 +148,15 @@ export interface PartOpts {
   noShadow?: boolean;
   /** Polished surface (floors, asphalt). */
   gloss?: boolean;
+  /** Photo-textured PBR surface (wood, plaster, asphalt...). */
+  surf?: SurfaceId;
 }
 
 export class Batch {
   private lit: THREE.BufferGeometry[] = [];
   private flat: THREE.BufferGeometry[] = [];
   private gloss: THREE.BufferGeometry[] = [];
+  private surfs = new Map<SurfaceId, THREE.BufferGeometry[]>();
   private glow: THREE.BufferGeometry[] = [];
   extras: THREE.Object3D[] = [];
   private cylCache = new Map<number, THREE.CylinderGeometry>();
@@ -180,7 +184,10 @@ export class Batch {
 
   private push(geo: THREE.BufferGeometry, o?: PartOpts) {
     if (o?.glow) this.glow.push(geo);
-    else if (o?.gloss) this.gloss.push(geo);
+    else if (o?.surf) {
+      if (!this.surfs.has(o.surf)) this.surfs.set(o.surf, []);
+      this.surfs.get(o.surf)!.push(geo);
+    } else if (o?.gloss) this.gloss.push(geo);
     else if (o?.noShadow) this.flat.push(geo);
     else this.lit.push(geo);
   }
@@ -221,7 +228,14 @@ export class Batch {
 
   /** Sphere/ellipsoid centered at (x,y,z). */
   sphere(x: number, y: number, z: number, r: number, color: THREE.ColorRepresentation, o?: PartOpts & { sy?: number; sx?: number; sz?: number; detail?: number }) {
-    const g = new THREE.IcosahedronGeometry(1, o?.detail ?? 1);
+    // smooth sphere: at least detail 2, with normals pointing straight out (no faceting)
+    const g = new THREE.IcosahedronGeometry(1, Math.max(2, o?.detail ?? 2));
+    const pos = g.attributes.position;
+    const nrm = g.attributes.normal;
+    for (let i = 0; i < pos.count; i++) {
+      _p.set(pos.getX(i), pos.getY(i), pos.getZ(i)).normalize();
+      nrm.setXYZ(i, _p.x, _p.y, _p.z);
+    }
     this.push(bake(g, this.matrix(x, y, z, r * (o?.sx ?? 1), r * (o?.sy ?? 1), r * (o?.sz ?? 1), o), color), o);
   }
 
@@ -267,6 +281,14 @@ export class Batch {
       m.receiveShadow = true;
       group.add(m);
     }
+    for (const [id, list] of this.surfs) {
+      const m = new THREE.Mesh(mergeGeometries(list), surfaceMaterial(id));
+      m.castShadow = id !== 'asphalt' && id !== 'pavers' && id !== 'grass';
+      m.receiveShadow = true;
+      group.add(m);
+      list.forEach((g) => g.dispose());
+    }
+    this.surfs.clear();
     if (this.gloss.length) {
       const m = new THREE.Mesh(mergeGeometries(this.gloss), glossMaterial);
       m.receiveShadow = true;

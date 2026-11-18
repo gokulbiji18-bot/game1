@@ -35,14 +35,14 @@ const GradeShader = {
       col.b = texture2D(tDiffuse, vUv - c * ca).b;
       float l = dot(col, vec3(0.299, 0.587, 0.114));
       // cool, slightly violet shadows; warm highlights
-      col *= mix(vec3(0.96, 0.95, 1.08), vec3(1.05, 1.01, 0.96), smoothstep(0.15, 0.85, l));
-      col = mix(vec3(l), col, 1.2 - 0.5 * uAnx);
+      col *= mix(vec3(0.98, 0.98, 1.03), vec3(1.02, 1.0, 0.98), smoothstep(0.15, 0.85, l));
+      col = mix(vec3(l), col, 1.04 - 0.45 * uAnx);
       col = (col - 0.5) * (1.0 + 0.1 * uAnx) + 0.5;
       float v = smoothstep(0.95, 0.3, length(c * vec2(1.0, 0.82)));
-      col *= mix(0.86, 1.0, v);
+      col *= mix(0.78, 1.0, v);
       col = mix(col, col * vec3(0.9, 1.0, 1.1) + vec3(0.0, 0.01, 0.03), uFocus * 0.6);
       float n = fract(sin(dot(vUv * uRes + uTime, vec2(12.9898, 78.233))) * 43758.5453);
-      col += (n - 0.5) * 0.006;
+      col += (n - 0.5) * 0.012;
       gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
     }`,
 };
@@ -79,7 +79,7 @@ export class Post {
       };
       this.composer.addPass(this.gtao);
     }
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(size.x, size.y), 0.62, 0.55, 0.88);
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(size.x, size.y), 0.42, 0.45, 0.92);
     this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
     this.grade = new ShaderPass(GradeShader);

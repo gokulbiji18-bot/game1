@@ -17,8 +17,7 @@ export const AARAV_LOOK = {
   hat: 'backcap' as const,
   hatColor: 0x22223b,
   iris: 0x6b3f22,
-  blush: true,
-  scale: 0.88,
+  scale: 0.95,
 };
 
 export class Player {

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Batch, LightDef } from './builder';
 import { Collision, Box } from '../collision';
-import { plant } from './apartment';
+import type { PropSpec } from './props';
 import { signTexture, noticeTexture, glowTexture, catFoodTexture, labelTexture, skylineTexture } from './textures';
 
 // Lobby, the Bengaluru-style street, and Namma Mart. Loaded lazily after the apartment.
@@ -45,14 +45,13 @@ export function buildOutside(col: Collision): OutsideRefs {
   ];
 
   // ---------- ground ----------
-  b.box(50, -0.22, -12, 220, 0.1, 70, 0x4e4860, { gloss: true }); // asphalt base (top -0.12)
+  b.box(50, -0.22, -12, 220, 0.1, 70, 0xe8e8ec, { surf: 'asphalt' }); // asphalt base (top -0.12)
   // south sidewalk
-  b.box(49.5, -0.12, -1.5, 175, 0.12, 3, 0xdcc49c, { noShadow: true });
+  b.box(49.5, -0.12, -1.5, 175, 0.12, 3, 0xffffff, { surf: 'pavers' });
   b.box(49.5, -0.12, -2.95, 175, 0.14, 0.12, 0xf3e6cc, { noShadow: true });
   // sidewalk tiles pattern
-  for (let x = -37; x < 136; x += 1.5) b.box(x, 0.001, -1.5, 0.04, 0.003, 2.9, 0xc4a77c, { noShadow: true });
   // north sidewalk
-  b.box(49.5, -0.12, -12.5, 153, 0.12, 3, 0xdcc49c, { noShadow: true });
+  b.box(49.5, -0.12, -12.5, 153, 0.12, 3, 0xffffff, { surf: 'pavers' });
   b.box(49.5, -0.12, -11.05, 153, 0.14, 0.12, 0xf3e6cc, { noShadow: true });
   // ground behind buildings / alley
   b.box(30, -0.12, 5, 4, 0.12, 10, 0xcbb48c, { noShadow: true });
@@ -90,13 +89,7 @@ export function buildOutside(col: Collision): OutsideRefs {
   shopNorth(b, 18, 30, 0x577590, 'ATM • 24x7', '');
   park(b, 30, 62);
   // the park: pines around the edge, bushes, rocks and flower clumps (kept off the central path)
-  for (const [x, z, sc] of [[32.5, -17, 1.1], [33.5, -24, 1.3], [32.8, -32, 1.2], [36.5, -37.5, 1.0], [42, -36.5, 1.25], [51, -37.8, 1.1], [57.5, -35, 1.35], [60, -28, 1.0], [59.8, -19.5, 1.2], [55.5, -16.2, 0.9], [38.5, -16.5, 0.8]] as const) pine(b, x, z, sc);
-  for (const [x, z, sc] of [[35.5, -20, 1], [41, -22.5, 1.2], [50.5, -23.5, 1], [54, -29.5, 1.3], [39, -30.5, 1.1], [44, -33, 0.9], [57, -24.5, 1]] as const) bush(b, x, z, sc);
-  for (const [x, z, sc] of [[37.5, -26, 1.2], [53, -33.5, 1], [42.5, -18.2, 0.8], [58.5, -31.5, 1.3]] as const) rock(b, x, z, sc);
-  for (const [x, z] of [[43.5, -15.8], [48.6, -15.8], [36.5, -28.5], [55.5, -21], [47.5, -30.5], [40, -34.5]]) flowers(b, x, z);
   // greenery along the street: bushes against the north-side buildings and around tree pits
-  for (const x of [-24, -16, -8, 10.5, 20, 64, 72, 80, 88, 104, 112, 120]) bush(b, x, -13.55, 0.75);
-  for (const x of [-30, -22, 120.5, 126]) flowers(b, x, -0.45);
   residential(b, 62, 86, -14, -40, 12, 0xe5989b, 1);
   shopNorth(b, 86, 100, 0xffb703, 'MOBILES', 'ಮೊಬೈಲ್ಸ್');
   residential(b, 100, 126, -14, -40, 17, 0x8ecae6, 1, 'SKYLINE TOWERS');
@@ -143,11 +136,7 @@ export function buildOutside(col: Collision): OutsideRefs {
   }
   group.add(cables(poleXs));
   // trees
-  const trees: Array<[number, number, number]> = [
-    [-29, -12.8, 1.1], [-12, -12.6, 1.2], [6, -13.0, 1], [34, -17, 1.3], [40, -24, 1.5], [52, -19, 1.2], [58, -26, 1.4],
-    [64, -12.8, 1], [82, -12.8, 1.2], [108, -12.8, 1.1], [123, -12.8, 1], [6.5, -0.5, 0.9], [-20, -0.5, 1], [31, 7, 0.8],
-  ];
-  for (const [x, z, s] of trees) tree(b, x, z, s);
+  for (const [x, z, s] of TREES) treePit(b, x, z, s);
   // parked scooters and an auto
   const scooters: Array<[number, number, number, number]> = [
     [11, -3.6, 0.2, 0xe63946], [12.2, -3.6, 0.15, 0x457b9d], [36, -3.6, -0.1, 0xf1faee], [37.2, -3.6, 0.2, 0x2a9d8f],
@@ -169,11 +158,7 @@ export function buildOutside(col: Collision): OutsideRefs {
   busStop(b, 46.5);
   vegCart(b, 90.5, -2.35);
   // big neem tree by the park + potted plants along shopfronts
-  tree(b, 26.5, -12.9, 1.6);
-  for (const x of [9.6, 31.4, 40.4, 55.6, 84.4]) plant(b, x, -0.45, 0.7);
   // dustbin, milk booth-ish kiosk, bench
-  b.cyl(15.5, 0, -2.4, 0.3, 0.8, 0x2a9d8f, 10, { collide: 'low' });
-  b.cyl(70.5, 0, -0.9, 0.3, 0.8, 0x2a9d8f, 10, { collide: 'low' });
 
   // ---------- lobby-front details ----------
   b.box(-1.9, 0, -0.4, 0.7, 0.9, 0.7, 0x9c6644, { collide: 'low' });
@@ -246,18 +231,19 @@ export function buildOutside(col: Collision): OutsideRefs {
 function buildLobby(b: Batch) {
   const H = 3.4;
   // floor (checker marble)
-  for (let x = -6; x < 6; x++) for (let z = 0; z < 10; z++) b.box(x + 0.5, -0.05, z + 0.5, 1, 0.05, 1, (x + z) % 2 ? 0xe9e2d6 : 0xd6cdbd, { gloss: true });
-  b.box(0, H, 5, 12, 0.1, 10.4, 0xf2efe8, { noShadow: true });
+  b.box(0, -0.05, 5, 12, 0.05, 10, 0xffffff, { surf: 'marble' });
+  // ceiling sits just under the facade block so their faces don't z-fight
+  b.box(0, H - 0.1, 5, 12, 0.1, 10.4, 0xf2efe8, { surf: 'plaster' });
   // ceiling lights
-  for (const z of [3, 8]) b.box(0, H - 0.04, z, 1.6, 0.04, 0.5, 0xfff6e0, { glow: true });
+  for (const z of [3, 8]) b.box(0, H - 0.14, z, 1.6, 0.04, 0.5, 0xfff6e0, { glow: true });
   const wall = 0xf0e6d2;
   // front wall (z=0) with entrance x -1.3..1.3
-  b.box(-5.15, 0, 0, 7.7, H, 0.3, wall, { collide: true });
-  b.box(5.15, 0, 0, 7.7, H, 0.3, wall, { collide: true });
+  b.box(-5.15, 0, 0, 7.7, H, 0.3, wall, { collide: true, surf: 'exterior' });
+  b.box(5.15, 0, 0, 7.7, H, 0.3, wall, { collide: true, surf: 'exterior' });
   b.box(0, 2.6, 0, 2.6, H - 2.6, 0.3, wall);
-  b.box(-6.1, 0, 5, 0.2, H, 10.2, wall, { collide: true });
-  b.box(6.1, 0, 5, 0.2, H, 10.2, wall, { collide: true });
-  b.box(0, 0, 10.1, 12.4, H, 0.2, wall, { collide: true });
+  b.box(-6.1, 0, 5, 0.2, H, 10.2, wall, { collide: true, surf: 'exterior' });
+  b.box(6.1, 0, 5, 0.2, H, 10.2, wall, { collide: true, surf: 'exterior' });
+  b.box(0, 0, 10.1, 12.4, H, 0.2, wall, { collide: true, surf: 'exterior' });
   // dado
   b.box(-6.0, 0, 5, 0.04, 1.1, 10, 0xb08968);
   b.box(6.0, 0, 5, 0.04, 1.1, 10, 0xb08968);
@@ -285,16 +271,11 @@ function buildLobby(b: Batch) {
   b.plane(-5.97, 2.3, 5, 1.2, 0.22, signTexture('NOTICE BOARD', { bg: '#7a5230', fg: '#fff', w: 256, h: 48 }), { rotY: Math.PI / 2 });
   // mailboxes (east wall)
   for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) b.box(5.95, 0.9 + r * 0.32, 6.5 + c * 0.4, 0.15, 0.28, 0.36, c === 1 && r === 1 ? 0xd62828 : 0x9aa5ad);
-  // bench + plants
-  b.box(-5.5, 0, 2.6, 0.6, 0.45, 1.8, 0x6b4a35, { collide: 'low' });
-  plant(b, -5.4, 0.7, 0.9);
-  plant(b, 5.4, 0.7, 0.9);
-  plant(b, 5.4, 9.4, 0.7);
   // facade + upper floors
-  b.box(0, H, 6.5, 18, 13, 13.2, 0xe8c07d);
-  b.box(-7.6, 0, 6.5, 2.8, H, 13, 0xe8c07d, { collide: true });
-  b.box(7.6, 0, 6.5, 2.8, H, 13, 0xe8c07d, { collide: true });
-  b.box(0, 0, 11.5, 12.4, H, 2.6, 0xe8c07d, { collide: true });
+  b.box(0, H, 6.5, 18, 13, 13.2, 0xe8c07d, { surf: 'exterior' });
+  b.box(-7.6, 0, 6.5, 2.8, H, 13, 0xe8c07d, { collide: true, surf: 'exterior' });
+  b.box(7.6, 0, 6.5, 2.8, H, 13, 0xe8c07d, { collide: true, surf: 'exterior' });
+  b.box(0, 0, 11.5, 12.4, H, 2.6, 0xe8c07d, { collide: true, surf: 'exterior' });
   // canopy over entrance
   b.box(0, 2.9, -0.9, 3.6, 0.15, 1.8, 0x7f5539);
   b.plane(0, 3.25, -1.81, 3.4, 0.6, signTexture('SUNSHINE ENCLAVE', { bg: '#7f5539', fg: '#ffe8a3', kannada: 'ಸನ್‌ಶೈನ್ ಎನ್‌ಕ್ಲೇವ್', w: 512, h: 96, glow: true }), { rotY: Math.PI, basic: true });
@@ -316,7 +297,7 @@ function residential(b: Batch, x0: number, x1: number, z0: number, z1: number, h
   const d = Math.abs(z1 - z0);
   const cz = (z0 + z1) / 2;
   const cx = (x0 + x1) / 2;
-  b.box(cx, 0, cz, w, h, d, color, { collide: true });
+  b.box(cx, 0, cz, w, h, d, color, { collide: true, surf: 'exterior' });
   b.box(cx, h, cz, w + 0.3, 0.3, d + 0.3, 0x6c6c6c);
   rooftop(b, x0, x1, Math.min(z0, z1), Math.max(z0, z1), h + 0.3);
   if (!side) acUnits(b, x0, x1, facing === -1 ? Math.min(z0, z1) : Math.max(z0, z1), facing, Math.floor(h / 3));
@@ -355,8 +336,8 @@ function shop(b: Batch, x0: number, x1: number, color: number, name: string, kan
   const cx = (x0 + x1) / 2;
   const w = x1 - x0;
   // building mass above + side columns
-  b.box(cx, 0, 6, w, 9, 12, 0xd8cfc0, { collide: true });
-  b.box(cx, 0, -0.03, w, 9, 0.06, 0xd8cfc0);
+  b.box(cx, 0, 6, w, 9, 12, 0xd8cfc0, { collide: true, surf: 'exterior' });
+  b.box(cx, 0, -0.03, w, 9, 0.06, 0xd8cfc0, { surf: 'exterior' });
   // shop window (glowing interior) with shelves, silhouettes and mullions
   b.box(cx, 0.3, -0.07, w - 1.2, 2.3, 0.05, new THREE.Color(color).multiplyScalar(0.55), { glow: true });
   for (const y of [0.95, 1.6]) b.box(cx, y, -0.1, w - 1.3, 0.05, 0.03, 0x3a3030);
@@ -386,7 +367,7 @@ function shop(b: Batch, x0: number, x1: number, color: number, name: string, kan
 function shopNorth(b: Batch, x0: number, x1: number, color: number, name: string, kannada: string) {
   const cx = (x0 + x1) / 2;
   const w = x1 - x0;
-  b.box(cx, 0, -27, w, 8, 26, 0xcbbfad, { collide: true });
+  b.box(cx, 0, -27, w, 8, 26, 0xcbbfad, { collide: true, surf: 'exterior' });
   rooftop(b, x0, x1, -40, -14, 8);
   b.box(cx, 0.3, -13.95, w - 1.2, 2.3, 0.05, color, { glow: true });
   b.plane(cx, 3.3, -13.9, w - 0.8, 0.9, signTexture(name, { bg: '#1d1b2e', fg: '#fff', kannada: kannada || undefined, w: 512, h: 112, glow: true }), { basic: true });
@@ -401,10 +382,10 @@ function hardwareShop(b: Batch, x0: number, x1: number) {
   const cx = (x0 + x1) / 2;
   const w = x1 - x0;
   const wall = 0xcbbfad;
-  b.box(cx, 2.9, -17, w, 5.1, 6, wall);
-  b.box(cx, 0, -28.5, w, 8, 23, wall, { collide: true });
-  b.box(x0 + 0.4, 0, -15.5, 0.8, 2.9, 3, wall, { collide: true });
-  b.box(x1 - 0.4, 0, -15.5, 0.8, 2.9, 3, wall, { collide: true });
+  b.box(cx, 2.9, -17, w, 5.1, 6, wall, { surf: 'exterior' });
+  b.box(cx, 0, -28.5, w, 8, 23, wall, { collide: true, surf: 'exterior' });
+  b.box(x0 + 0.4, 0, -15.5, 0.8, 2.9, 3, wall, { collide: true, surf: 'exterior' });
+  b.box(x1 - 0.4, 0, -15.5, 0.8, 2.9, 3, wall, { collide: true, surf: 'exterior' });
   rooftop(b, x0, x1, -40, -14, 8);
   // counter with a battery display
   b.box(cx, 0, -14.6, w - 1.6, 0.95, 0.6, 0x5c4033, { collide: true });
@@ -434,10 +415,10 @@ function xeroxShop(b: Batch, x0: number, x1: number) {
   const cx = (x0 + x1) / 2;
   const w = x1 - x0;
   const wall = 0xd8cfc0;
-  b.box(cx, 2.9, 3, w, 6, 6, wall);
-  b.box(cx, 0, 4.5, w, 2.9, 3, wall, { collide: true });
-  b.box(x0 + 0.4, 0, 1.5, 0.8, 2.9, 3, wall, { collide: true });
-  b.box(x1 - 0.4, 0, 1.5, 0.8, 2.9, 3, wall, { collide: true });
+  b.box(cx, 2.9, 3, w, 6, 6, wall, { surf: 'exterior' });
+  b.box(cx, 0, 4.5, w, 2.9, 3, wall, { collide: true, surf: 'exterior' });
+  b.box(x0 + 0.4, 0, 1.5, 0.8, 2.9, 3, wall, { collide: true, surf: 'exterior' });
+  b.box(x1 - 0.4, 0, 1.5, 0.8, 2.9, 3, wall, { collide: true, surf: 'exterior' });
   // counter, monitor, paper stacks
   b.box(cx, 0, 0.6, w - 1.6, 0.95, 0.6, 0x1d3557, { collide: true });
   b.box(cx, 0.95, 0.6, w - 1.5, 0.05, 0.7, 0xdee2e6);
@@ -460,10 +441,10 @@ function xeroxShop(b: Batch, x0: number, x1: number) {
 function teaStall(b: Batch, x0: number, x1: number) {
   const cx = (x0 + x1) / 2;
   const w = x1 - x0;
-  b.box(cx, 2.9, 3, w, 6, 6, 0xd8cfc0);
-  b.box(cx, 0, 4.5, w, 2.9, 3, 0xd8cfc0, { collide: true });
-  b.box(x0 + 0.4, 0, 1.5, 0.8, 2.9, 3, 0xd8cfc0, { collide: true });
-  b.box(x1 - 0.4, 0, 1.5, 0.8, 2.9, 3, 0xd8cfc0, { collide: true });
+  b.box(cx, 2.9, 3, w, 6, 6, 0xd8cfc0, { surf: 'exterior' });
+  b.box(cx, 0, 4.5, w, 2.9, 3, 0xd8cfc0, { collide: true, surf: 'exterior' });
+  b.box(x0 + 0.4, 0, 1.5, 0.8, 2.9, 3, 0xd8cfc0, { collide: true, surf: 'exterior' });
+  b.box(x1 - 0.4, 0, 1.5, 0.8, 2.9, 3, 0xd8cfc0, { collide: true, surf: 'exterior' });
   b.box(cx, 0, 0.6, w - 1.6, 0.95, 0.6, 0x8d5a3b, { collide: true }); // counter
   b.box(cx, 0.95, 0.6, w - 1.5, 0.05, 0.7, 0xbca58a);
   // tea kettle, glasses, biscuit jars
@@ -501,7 +482,7 @@ function construction(b: Batch, x0: number, x1: number) {
 function park(b: Batch, x0: number, x1: number) {
   const cx = (x0 + x1) / 2;
   const w = x1 - x0;
-  b.box(cx, -0.12, -27, w, 0.16, 26, 0x86c94a, { noShadow: true });
+  b.box(cx, -0.12, -27, w, 0.16, 26, 0xc8e0b0, { surf: 'grass' });
   // fence with an opening
   for (let x = x0; x <= x1; x += 0.6) {
     if (x > cx - 2 && x < cx + 2) continue;
@@ -517,56 +498,11 @@ function park(b: Batch, x0: number, x1: number) {
   b.box(cx + 2, 2.1, -14.05, 0.1, 2.2, 0.1, 0x2d6a4f);
   // path, benches, grass tufts
   b.box(cx, 0.041, -20, 3, 0.01, 12, 0xecd29a, { noShadow: true });
-  b.box(cx - 3.2, 0, -19, 0.5, 0.45, 1.8, 0x6b4a35, { collide: 'low' });
-  b.box(cx + 3.2, 0, -21, 0.5, 0.45, 1.8, 0x6b4a35, { collide: 'low' });
-  for (let i = 0; i < 30; i++) {
-    const x = x0 + 1 + ((i * 7.13) % (w - 2));
-    const z = -15 - ((i * 3.7) % 24);
-    if (Math.abs(x - cx) < 2) continue;
-    b.cone(x, 0.04, z, 0.12, 0.25, 0x5fae3c, 4);
-  }
 }
 
-function tree(b: Batch, x: number, z: number, s: number) {
-  b.cyl(x, 0.0, z, 0.75 * s, 0.03, 0x6fbf45, 10, { noShadow: true });
-  b.cyl(x, 0, z, 0.17 * s, 2.4 * s, 0x8a5a44, 7, { collide: true, rTop: 0.11 * s });
-  b.sphere(x, 3.2 * s, z, 1.3 * s, 0x4fa84a, { sy: 0.8, detail: 0 });
-  b.sphere(x + 0.7 * s, 2.8 * s, z + 0.3 * s, 0.9 * s, 0x6cc04f, { sy: 0.8, detail: 0 });
-  b.sphere(x - 0.6 * s, 3.0 * s, z - 0.4 * s, 0.85 * s, 0x3d8f45, { sy: 0.8, detail: 0 });
-  b.sphere(x, 3.9 * s, z + 0.2 * s, 0.8 * s, 0x8fd65a, { sy: 0.8, detail: 0 });
-}
-
-/** Tiered stylised pine, like the reference art: stacked faceted cones in two greens. */
-function pine(b: Batch, x: number, z: number, s: number) {
-  b.cyl(x, 0, z, 0.2 * s, 1.2 * s, 0x8a5a44, 7, { collide: true, rTop: 0.14 * s });
-  const tiers = 4;
-  for (let i = 0; i < tiers; i++) {
-    const r = (1.55 - i * 0.32) * s;
-    const y = (0.9 + i * 0.85) * s;
-    b.cone(x, y, z, r, 1.35 * s, i % 2 ? 0x5cbf55 : 0x3f9e4d, 8, { rotY: i * 0.4 });
-  }
-  b.cone(x, (0.9 + tiers * 0.85) * s, z, 0.35 * s, 0.8 * s, 0x8fd65a, 8);
-}
-
-function bush(b: Batch, x: number, z: number, s: number) {
-  b.sphere(x, 0.32 * s, z, 0.45 * s, 0x5cb84a, { sy: 0.75, detail: 0 });
-  b.sphere(x + 0.38 * s, 0.26 * s, z + 0.1 * s, 0.34 * s, 0x8fd14f, { sy: 0.75, detail: 0 });
-  b.sphere(x - 0.32 * s, 0.24 * s, z - 0.08 * s, 0.3 * s, 0x47a03f, { sy: 0.75, detail: 0 });
-}
-
-function rock(b: Batch, x: number, z: number, s: number) {
-  b.sphere(x, 0.18 * s, z, 0.5 * s, 0xa8939e, { sy: 0.65, detail: 0, rotY: x });
-  b.sphere(x + 0.45 * s, 0.1 * s, z + 0.2 * s, 0.25 * s, 0xbca7ae, { sy: 0.6, detail: 0 });
-}
-
-function flowers(b: Batch, x: number, z: number) {
-  const cols = [0xffb02e, 0xffd23f, 0xff7b54, 0xffffff];
-  for (let i = 0; i < 6; i++) {
-    const fx = x + Math.cos(i * 2.4) * 0.35 * ((i % 3) + 1) / 2;
-    const fz = z + Math.sin(i * 2.4) * 0.35 * ((i % 3) + 1) / 2;
-    b.cyl(fx, 0, fz, 0.012, 0.22, 0x4f9a3a, 4, { noShadow: true });
-    b.sphere(fx, 0.25, fz, 0.06, cols[i % cols.length], { detail: 0, noShadow: true });
-  }
+/** Soil ring around a tree's base; the tree itself is a real model (see outsideProps). */
+function treePit(b: Batch, x: number, z: number, s: number) {
+  b.cyl(x, 0.0, z, 0.75 * s, 0.03, 0xa89a88, 12, { noShadow: true, surf: 'bark' });
 }
 
 function streetLamp(b: Batch, x: number, z: number, dir: 1 | -1) {
@@ -826,15 +762,15 @@ function buildStore(b: Batch, col: Collision, group: THREE.Group) {
   const x0 = 96, x1 = 118, z0 = 0, z1 = 18, H = 4.2;
   const cx = (x0 + x1) / 2;
   // floor tiles
-  for (let x = x0; x < x1; x += 1) for (let z = z0; z < z1; z += 1) b.box(x + 0.5, -0.04, z + 0.5, 1, 0.04, 1, (x + z) % 2 ? 0xf4f4f0 : 0xe1e3dc, { gloss: true });
-  b.box(cx, H, (z0 + z1) / 2, x1 - x0, 0.1, z1 - z0, 0xf7f7f2, { noShadow: true });
+  b.box(cx, -0.04, (z0 + z1) / 2, x1 - x0, 0.04, z1 - z0, 0xeeeeea, { surf: 'tiles' });
+  b.box(cx, H, (z0 + z1) / 2, x1 - x0, 0.1, z1 - z0, 0xf7f7f2, { surf: 'plaster' });
   // ceiling light panels
   for (let x = x0 + 3; x < x1 - 1; x += 4) for (let z = 3; z < z1; z += 4) b.box(x, H - 0.03, z, 1.8, 0.03, 0.6, 0xffffff, { glow: true });
   // walls
   const wall = 0xf3efe6;
-  b.box(x0 - 0.1, 0, (z0 + z1) / 2, 0.2, H + 2, z1 - z0, wall, { collide: true });
-  b.box(x1 + 0.1, 0, (z0 + z1) / 2, 0.2, H + 2, z1 - z0, wall, { collide: true });
-  b.box(cx, 0, z1 + 0.1, x1 - x0 + 0.4, H + 2, 0.2, wall, { collide: true });
+  b.box(x0 - 0.1, 0, (z0 + z1) / 2, 0.2, H + 2, z1 - z0, wall, { collide: true, surf: 'exterior' });
+  b.box(x1 + 0.1, 0, (z0 + z1) / 2, 0.2, H + 2, z1 - z0, wall, { collide: true, surf: 'exterior' });
+  b.box(cx, 0, z1 + 0.1, x1 - x0 + 0.4, H + 2, 0.2, wall, { collide: true, surf: 'exterior' });
   b.box(cx, 0, z1 - 0.05, x1 - x0, 1.0, 0.04, 0x52b788);
   b.box(x0 + 0.05, 0, (z0 + z1) / 2, 0.04, 1.0, z1 - z0, 0x52b788);
   b.box(x1 - 0.05, 0, (z0 + z1) / 2, 0.04, 1.0, z1 - z0, 0x52b788);
@@ -847,7 +783,7 @@ function buildStore(b: Batch, col: Collision, group: THREE.Group) {
   b.box(cx, 3.2, 0, x1 - x0 + 0.4, H + 2 - 3.2, 0.3, 0x2d6a4f);
   for (const x of [x0, 99, 102, 106, 110, 114, x1]) b.box(x, 0, -0.02, 0.12, 3.2, 0.3, 0x1b4332);
   // upper storey of the building
-  b.box(cx, H + 2, 9, x1 - x0 + 0.4, 6, 18.4, 0xd8e2dc);
+  b.box(cx, H + 2, 9, x1 - x0 + 0.4, 6, 18.4, 0xd8e2dc, { surf: 'exterior' });
   for (let x = x0 + 2; x < x1 - 1; x += 3) b.box(x, H + 3.5, -0.23, 1.6, 1.3, 0.05, Math.floor(x) % 2 ? 0xffd98e : 0x2b2b44, { glow: Math.floor(x) % 2 === 1 });
   // big sign
   b.plane(cx, 4.4, -0.2, 14, 1.5, signTexture('NAMMA MART', { bg: '#1b4332', fg: '#ffd166', kannada: 'ನಮ್ಮ ಮಾರ್ಟ್', sub: 'GROCERY • DAIRY • PET CARE', subFg: '#b7e4c7', w: 1024, h: 180, glow: true }), { rotY: Math.PI, basic: true });
@@ -879,8 +815,6 @@ function buildStore(b: Batch, col: Collision, group: THREE.Group) {
   b.box(104.7, 0, 3.5, 1.0, 0.95, 3.6, 0x40916c, { collide: true });
   b.box(104.7, 0.95, 3.5, 1.1, 0.05, 3.7, 0xe9ecef);
   b.box(104.7, 1.0, 2.6, 0.5, 0.06, 1.4, 0x222222); // belt
-  b.box(104.9, 1.0, 4.4, 0.35, 0.3, 0.35, 0x343a40); // register
-  b.box(104.9, 1.3, 4.4, 0.3, 0.22, 0.04, 0x7ad7ff, { glow: true, rotX: -0.3 });
   b.box(104.6, 1.0, 3.7, 0.2, 0.12, 0.25, 0x6c757d); // scanner
   b.box(104.6, 1.0, 3.7, 0.12, 0.01, 0.15, 0xff3b3b, { glow: true });
   b.box(104.3, 1.0, 4.9, 0.18, 0.28, 0.12, 0xffffff); // QR stand
@@ -965,7 +899,6 @@ function buildStore(b: Batch, col: Collision, group: THREE.Group) {
   // fruit & veg crates on the east side
   for (let i = 0; i < 4; i++) {
     b.box(115.5, 0, 7.5 + i * 2, 2.2, 0.7, 1.6, 0x9c6644, { collide: true, rotX: 0 });
-    for (let k = 0; k < 8; k++) b.sphere(114.7 + (k % 4) * 0.5, 0.78, 7.1 + i * 2 + Math.floor(k / 4) * 0.7, 0.16, [0xe63946, 0xffbe0b, 0x8ac926, 0xff7f11][i], { detail: 0 });
   }
   b.plane(115.5, 2.4, 6.5, 3, 0.45, signTexture('FRESH VEGGIES', { bg: '#386641', fg: '#fff', w: 384, h: 64 }), { rotY: Math.PI, basic: true });
 
@@ -1036,4 +969,95 @@ function buildStore(b: Batch, col: Collision, group: THREE.Group) {
   for (const [id, [x, y, z]] of Object.entries(specials)) anchors['item_' + id] = V(x, y + 0.2, z);
   anchors.item_choco = V(105.2, 1.2, 16.6);
   return { items, doors, barrier, lights, anchors };
+}
+
+const flowerPart = (i: number) => ['_h_LOD0', '_g_LOD0', '_f_LOD0', '_d_LOD0'][i % 4];
+
+/** Street and park trees: [x, z, scale]. */
+const TREES: Array<[number, number, number]> = [
+  // street (north sidewalk, south sidewalk, alley) and the big neem by the park gate
+  [-29, -12.8, 1.0], [-12, -12.6, 1.05], [6, -13.0, 0.95], [64, -12.8, 0.95], [82, -12.8, 1.05], [108, -12.8, 1.0], [123, -12.8, 0.95],
+  [7.6, -1.9, 0.8], [-20, -1.9, 0.85], [31, 7, 0.75], [26.5, -12.9, 1.3],
+  // park
+  [34, -17, 1.1], [40, -24, 1.3], [52, -19, 1.05], [58, -26, 1.2],
+  [33, -31, 1.15], [38, -37, 1.0], [47, -36.5, 1.25], [56.5, -35, 1.1], [60, -18, 0.95],
+];
+
+/** Real 3D models (Poly Haven, CC0) for the lobby, street, park and store (world coordinates). */
+export function outsideProps(): PropSpec[] {
+  const L: PropSpec[] = [
+    // lobby
+    { m: 'painted_wooden_bench', x: -5.55, z: 2.6, r: Math.PI / 2, w: 1.7, col: 'low' },
+    { m: 'potted_plant_01', x: -5.35, z: 0.75, col: 'low' },
+    { m: 'potted_plant_01', x: 5.35, z: 0.75, col: 'low' },
+    { m: 'potted_plant_02', x: 5.35, z: 9.35, col: 'low' },
+    // street furniture
+    { m: 'metal_trash_can', keep: '^metal_trash_can(_lid|_handle_left|_handle_right)?$', x: 15.5, z: -2.4, r: 0.4, col: 'low' },
+    { m: 'metal_trash_can', keep: '^metal_trash_can(_lid|_handle_left|_handle_right)?$', x: 70.5, z: -0.9, r: -0.3, col: 'low' },
+    { m: 'utility_box_01', x: -26, z: -0.32, r: Math.PI, col: 'low' },
+    { m: 'utility_box_01', x: 5.2, z: -0.32, r: Math.PI, col: 'low' },
+    { m: 'utility_box_02', x: 118.6, z: -0.32, r: Math.PI, col: 'low' },
+    // the tea stall's plastic chairs, crates and clutter
+    { m: 'plastic_monobloc_chair_01', x: 25.7, z: -1.9, r: -2.5, col: 'low' },
+    { m: 'plastic_monobloc_chair_01', x: 26.7, z: -1.15, r: -2.0, col: 'low' },
+    { m: 'plastic_monobloc_chair_01', x: 44.1, z: -0.7, r: Math.PI + 0.3, col: 'low' },
+    { m: 'plastic_crate_02', x: 92.3, z: -1.0, r: 0.2, col: 'low' },
+    { m: 'plastic_crate_02', x: 92.3, z: -1.0, y: 0.25, r: -0.1 },
+    { m: 'plastic_crate_01', x: 97.4, z: -0.5, r: 0.3, col: 'low' },
+    { m: 'cardboard_box_01', x: 39.3, z: -0.42, r: 0.5, col: 'low' },
+    { m: 'cardboard_box_01', x: 29.4, z: 7.5, r: 0.2 },
+    { m: 'trashbag', x: 30.6, z: 8.6 },
+    { m: 'trashbag', x: 73.4, z: -0.95, r: 1.0, col: 'low' },
+    { m: 'old_tyre', x: 31.4, z: 6.2, r: 0.3 },
+    // road works and parked cars under covers
+    { m: 'concrete_road_barrier', x: 55.6, z: -3.55, col: 'tall' },
+    { m: 'concrete_road_barrier', x: 74.4, z: -3.55, col: 'tall' },
+    { m: 'covered_car', x: 24, z: -10.35, r: Math.PI / 2, col: 'tall' },
+    { m: 'covered_car', x: 80, z: -10.35, r: Math.PI / 2, col: 'tall' },
+    { m: 'covered_car', x: 110, z: -10.35, r: -Math.PI / 2, col: 'tall' },
+    // park
+    { m: 'boulder_01', x: 37.5, z: -26, s: 0.9, r: 0.6, col: 'tall' },
+    { m: 'boulder_01', x: 58.4, z: -31.5, s: 0.7, r: 2.1, col: 'tall' },
+    { m: 'boulder_01', x: 53, z: -33.5, s: 0.5, r: 4.0, col: 'low' },
+    { m: 'shrub_02', keep: '_a$', x: 35.5, z: -20, h: 1.2, col: 'low' },
+    { m: 'shrub_02', keep: '_b$', x: 41, z: -22.5, h: 1.0, col: 'low' },
+    { m: 'shrub_02', keep: '_c$', x: 50.5, z: -23.5, h: 1.3, col: 'low' },
+    { m: 'shrub_02', keep: '_d$', x: 54, z: -29.5, h: 1.1, col: 'low' },
+    { m: 'shrub_02', keep: '_a$', x: 39, z: -30.5, h: 0.9, r: 2, col: 'low' },
+    { m: 'shrub_02', keep: '_c$', x: 57, z: -24.5, h: 1.0, r: 1, col: 'low' },
+  ];
+  // real trees (simplified Poly Haven island_tree_02), varied in yaw and size
+  TREES.forEach(([x, z, sc], i) => L.push({ m: 'island_tree_02', x, z, h: 5.2 * sc, r: i * 2.39, col: 'tall', cw: 0.7 }));
+  // potted plants along the shopfronts, shrubs against the north-side buildings, park benches
+  for (const x of [9.6, 31.4, 40.4, 46.5, 55.6, 84.4]) L.push({ m: x % 2 ? 'potted_plant_02' : 'potted_plant_01', x, z: -0.5, col: 'low' });
+  [-24, -16, -8, 10.5, 20, 64, 72, 80, 88, 104, 112, 120].forEach((x, i) =>
+    L.push({ m: 'shrub_04', x, z: -13.5, h: 0.9 + (i % 3) * 0.15, r: i * 1.7, col: 'low' }),
+  );
+  [-30, -22, 120.5, 126].forEach((x, i) => L.push({ m: 'flower_gazania', keep: flowerPart(i) + '$', x, z: -0.5, r: i, s: 1.6 }));
+  L.push({ m: 'painted_wooden_bench', x: 42.8, z: -19, r: Math.PI / 2, w: 1.8, col: 'low' });
+  L.push({ m: 'painted_wooden_bench', x: 49.2, z: -21, r: -Math.PI / 2, w: 1.8, col: 'low' });
+  // flowers and grass clumps along the park path and lawn
+
+  const grassParts = ['large_a_LOD0', 'large_b_LOD0', 'mid_a_LOD0', 'tall_a_LOD0'];
+  for (let i = 0; i < 14; i++) {
+    const side = i % 2 ? 1 : -1;
+    L.push({ m: 'flower_gazania', keep: flowerPart(i) + '$', x: 46 + side * (1.9 + (i % 3) * 0.25), z: -15.6 - i * 0.8, r: i, s: 1.4 });
+  }
+  for (let i = 0; i < 40; i++) {
+    const x = 31 + ((i * 7.31) % 30);
+    const z = -15 - ((i * 4.77) % 24);
+    if (Math.abs(x - 46) < 2) continue;
+    L.push({ m: 'grass_medium_01', keep: grassParts[i % 4] + '$', x, z, r: i * 1.3, s: 2.2 });
+  }
+  // store: register, wet floor sign, steel shelving, produce on the crates
+  L.push({ m: 'CashRegister_01', x: 104.9, z: 4.4, y: 0.98, r: -Math.PI / 2, h: 0.4 });
+  L.push({ m: 'WetFloorSign_01', x: 105.7, z: 9.3, r: 0.5, col: 'low' });
+  for (let i = 0; i < 4; i++) L.push({ m: 'steel_frame_shelves_02', x: 96.45, z: 12.4 + i * 0.6, r: Math.PI / 2, col: 'tall' });
+  const produce = ['food_apple_01', 'yellow_onion', 'food_lime_01', 'food_apple_01'];
+  for (let i = 0; i < 4; i++) {
+    for (let k = 0; k < 18; k++) {
+      L.push({ m: produce[i], x: 114.6 + (k % 6) * 0.34 + ((k * 13) % 7) * 0.01, z: 7.0 + i * 2 + Math.floor(k / 6) * 0.45, y: 0.7, r: k * 0.9, s: 1.15 });
+    }
+  }
+  return L;
 }

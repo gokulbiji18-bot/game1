@@ -44,7 +44,7 @@ export class Story {
     return { name: n.def.name, color: n.def.color };
   }
   private head(n: NPC) {
-    return () => n.pos.clone().add(new THREE.Vector3(0, 2.15, 0));
+    return () => n.pos.clone().add(new THREE.Vector3(0, 1.95, 0));
   }
   private bubble(id: string, text: string, dur = 2.8) {
     const n = this.g.npcs.get(id);
@@ -565,7 +565,7 @@ export class Story {
       case 'guard':
         if (ret) {
           this.bubble('guard', 'Welcome back, sir! Got everything?');
-          setTimeout(() => g.ui.worldBubble('Yep! Thanks, Raju anna.', 'aarav', () => g.player.pos.clone().add(new THREE.Vector3(0, 2.1, 0)), 2.4), 1500);
+          setTimeout(() => g.ui.worldBubble('Yep! Thanks, Raju anna.', 'aarav', () => g.player.pos.clone().add(new THREE.Vector3(0, 1.95, 0)), 2.4), 1500);
         } else {
           n.setPose('salute');
           setTimeout(() => n.setPose('idle'), 2200);

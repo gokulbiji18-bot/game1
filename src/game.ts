@@ -14,8 +14,9 @@ import { Cat } from './characters';
 import { LightPool, LightDef, setGlowBoost } from './world/builder';
 import { Post } from './post';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { setCharacterRim } from './characters';
-import { buildApartment, AptRefs } from './world/apartment';
+import { loadSky } from './world/materials';
+import { buildApartment, AptRefs, APT_PROPS, APT_O } from './world/apartment';
+import { placeProps } from './world/props';
 import type { OutsideRefs } from './world/outside';
 import { Vehicle, makeAuto, makeScooter, PATHS } from './vehicles';
 import { Story } from './story';
@@ -58,14 +59,14 @@ interface ZonePreset {
   exposure: number;
 }
 
-// Bright, clean evening: strong coloured fill so shadows stay soft and violet instead of black,
-// a low warm "last light" key outside, and lifted exposure everywhere.
+// Semi-realistic dusk. Outdoors the HDRI sky provides most ambient light and reflections; the
+// directional light is the last warm sunlight. Indoors, warm tungsten point lights do the work.
 const PRESETS: Record<Zone, ZonePreset> = {
-  apartment: { hemiSky: 0xffe6cc, hemiGround: 0x7a6090, hemi: 1.55, dir: 1.1, dirColor: 0xffd6a8, dirOffset: [-3, 9, 2], bg: 0x241a33, fog: 0x241a33, fogNear: 60, fogFar: 300, exposure: 1.12 },
-  corridor: { hemiSky: 0xf0f6ff, hemiGround: 0x7c8a8a, hemi: 1.6, dir: 0.7, dirColor: 0xf0f4ff, dirOffset: [2, 9, 1], bg: 0x1d2028, fog: 0x1d2028, fogNear: 60, fogFar: 300, exposure: 1.1 },
-  lobby: { hemiSky: 0xfff3e0, hemiGround: 0x8a7458, hemi: 1.65, dir: 0.8, dirColor: 0xfff0d0, dirOffset: [-2, 9, 2], bg: 0x5a4a8a, fog: 0x5a4a8a, fogNear: 40, fogFar: 200, exposure: 1.1 },
-  street: { hemiSky: 0xb3a8ff, hemiGround: 0x8a5a78, hemi: 1.55, dir: 1.55, dirColor: 0xffb089, dirOffset: [-14, 9, 6], bg: 0x5a4a8a, fog: 0x8a6fa8, fogNear: 35, fogFar: 140, exposure: 1.18 },
-  store: { hemiSky: 0xfff8ee, hemiGround: 0x9a958a, hemi: 1.15, dir: 0.75, dirColor: 0xffffff, dirOffset: [-2, 10, 3], bg: 0x5a4a8a, fog: 0x8a6fa8, fogNear: 60, fogFar: 300, exposure: 0.92 },
+  apartment: { hemiSky: 0xfff0dc, hemiGround: 0x5a4636, hemi: 0.55, dir: 0.55, dirColor: 0xffd9b0, dirOffset: [-3, 9, 2], bg: 0x1a1420, fog: 0x1a1420, fogNear: 60, fogFar: 300, exposure: 1.0 },
+  corridor: { hemiSky: 0xf4f6ff, hemiGround: 0x6a6a64, hemi: 0.7, dir: 0.45, dirColor: 0xf0f4ff, dirOffset: [2, 9, 1], bg: 0x16181e, fog: 0x16181e, fogNear: 60, fogFar: 300, exposure: 1.0 },
+  lobby: { hemiSky: 0xfff3e0, hemiGround: 0x6a5a48, hemi: 0.75, dir: 0.55, dirColor: 0xfff0d0, dirOffset: [-2, 9, 2], bg: 0x3a3450, fog: 0x3a3450, fogNear: 40, fogFar: 200, exposure: 1.0 },
+  street: { hemiSky: 0x7f8cc4, hemiGround: 0x3a2e30, hemi: 0.4, dir: 1.3, dirColor: 0xff9e66, dirOffset: [-16, 6, 8], bg: 0x2e2a40, fog: 0x3e3a55, fogNear: 50, fogFar: 240, exposure: 0.92 },
+  store: { hemiSky: 0xfff8ee, hemiGround: 0x8a857a, hemi: 0.62, dir: 0.55, dirColor: 0xffffff, dirOffset: [-2, 10, 3], bg: 0x3a3450, fog: 0x8e7d96, fogNear: 60, fogFar: 300, exposure: 0.86 },
 };
 
 const CEILING: Record<Zone, number | null> = { apartment: 3.0, corridor: 3.0, lobby: 3.4, store: 4.2, street: null };
@@ -98,6 +99,9 @@ export class Game {
   dir = new THREE.DirectionalLight(0xffffff, 1);
   pool!: LightPool;
   post: Post | null = null;
+  private roomEnv: THREE.Texture | null = null;
+  private skyBg: THREE.Texture | null = null;
+  private skyEnv: THREE.Texture | null = null;
   marker = new THREE.Group();
   markerTarget: THREE.Vector3 | null = null;
 
@@ -127,7 +131,7 @@ export class Game {
 
   async init(progress: (p: number, msg?: string) => void) {
     this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: settings.quality !== 'low', powerPreference: 'high-performance' });
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMapping = THREE.AgXToneMapping;
     this.renderer.toneMappingExposure = 1.0;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.applyQuality(settings.quality, false);
@@ -145,7 +149,8 @@ export class Game {
     this.pool = new LightPool(this.scene, 6);
     // image-based ambient light so glossy floors and asphalt have something to reflect
     const pmrem = new THREE.PMREMGenerator(this.renderer);
-    this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    this.roomEnv = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    this.scene.environment = this.roomEnv;
     pmrem.dispose();
     progress(0.25, 'Loading social anxiety...');
     await frame();
@@ -170,6 +175,8 @@ export class Game {
     this.aptGroup = this.apt.group;
     this.scene.add(this.aptGroup);
     progress(0.6, 'Rehearsing how to say hello...');
+    // real furniture models stream in; don't hold the menu hostage if the network is slow
+    await Promise.race([placeProps(APT_PROPS, this.aptGroup, this.col, APT_O.x, APT_O.z), new Promise((r) => setTimeout(r, 8000))]);
     await frame();
     this.scene.add(this.player.model.root);
     this.aptGroup.add(this.miso.root);
@@ -234,6 +241,18 @@ export class Game {
         this.out = out;
         this.groundY = mod.groundY;
         this.setupOutside(out);
+        await placeProps(mod.outsideProps(), out.group, this.col);
+        this.warmOutside(out);
+        // the real dusk sky streams in after the street geometry
+        loadSky(this.renderer)
+          .then((sky) => {
+            this.skyBg = sky.background;
+            this.skyEnv = sky.env;
+            // the HDRI replaces the painted dome, clouds, moon, stars and skyline cards
+            out.sky.visible = false;
+            if (this.zone === 'street') this.setZone('street', true);
+          })
+          .catch(() => {});
         resolve(out);
       }, 300);
     });
@@ -265,7 +284,11 @@ export class Game {
     this.vehicles.push(new Vehicle(a.group, a.rider, PATHS.east, 6.5, 1));
     this.vehicles.push(new Vehicle(s.group, s.rider, PATHS.west, 8.5, 1));
     this.story.setupOutside(out);
-    // warm up shaders for the outside so the first lift ride doesn't hitch
+    this.warmOutside(out);
+  }
+
+  /** Compile the outside's shaders up front so the first lift ride doesn't hitch. */
+  private warmOutside(out: OutsideRefs) {
     const v = out.group.visible;
     out.group.visible = true;
     this.renderer.compile(this.scene, this.cam.cam);
@@ -538,16 +561,18 @@ export class Game {
     this.hemi.intensity = p.hemi;
     this.dir.intensity = p.dir;
     this.dir.color.setHex(p.dirColor);
-    this.scene.background = new THREE.Color(p.bg);
+    this.scene.background = z === 'street' && this.skyBg ? this.skyBg : new THREE.Color(p.bg);
+    this.scene.environment = z === 'street' && this.skyEnv ? this.skyEnv : this.roomEnv;
+    // the HDRI is captured a little earlier than 7:42 PM; dim it toward late dusk
+    this.scene.backgroundIntensity = 0.3;
     const fog = this.scene.fog as THREE.Fog;
     fog.color.setHex(p.fog);
     fog.near = p.fogNear;
     fog.far = p.fogFar;
     this.renderer.toneMappingExposure = p.exposure;
     this.cam.distance = { apartment: 3.7, corridor: 3.3, lobby: 3.8, street: 4.8, store: 4.3 }[z];
-    this.scene.environmentIntensity = { apartment: 0.22, corridor: 0.3, lobby: 0.3, street: 0.07, store: 0.12 }[z];
-    const rim = { apartment: [0xb08cff, 0.35], corridor: [0xcfe0ff, 0.25], lobby: [0xffe2b8, 0.25], street: [0x7f95ff, 0.45], store: [0xffffff, 0.2] }[z];
-    setCharacterRim(rim[0], rim[1]);
+    this.scene.environmentIntensity = { apartment: 0.35, corridor: 0.45, lobby: 0.45, street: this.skyEnv ? 0.55 : 0.25, store: 0.35 }[z];
+
     const inApt = z === 'apartment' || z === 'corridor';
     this.aptGroup.visible = inApt;
     if (this.out) this.out.group.visible = !inApt;
@@ -755,7 +780,7 @@ export class Game {
     });
     if (!nearest || this.locked) return;
     const n = nearest as NPC;
-    const head = () => n.pos.clone().add(new THREE.Vector3(0, 2.15, 0));
+    const head = () => n.pos.clone().add(new THREE.Vector3(0, 1.95, 0));
     const ret = this.state === 'RETURN_HOME' || this.state === 'FEED_CAT';
     if (!ret && this.anx.value > 32 && n.def.imagined && this.imaginedCd <= 0) {
       this.imaginedCd = 11;
