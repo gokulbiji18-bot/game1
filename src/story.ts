@@ -24,6 +24,7 @@ export class Story {
   private unpaidCd = 0;
   private wanderWarned = false;
   private waveOpen = false;
+  private objKey = '';
   private inCrowd = false;
 
   constructor(private g: Game) {}
@@ -298,6 +299,8 @@ export class Story {
 
     talk('mailman', () => this.talkMailman(), "Talk to Mr. D'Souza");
     talk('veggie', () => this.talkVeggie(), 'Talk to the vegetable vendor');
+    talk('hardware', () => this.talkHardware(), 'Ask Venkatesh Uncle for batteries');
+    talk('xerox', () => this.talkXerox(), 'Ask Manju for a printout');
     g.inter.trigger({
       id: 'wave', minX: 77, maxX: 79.5, minZ: -3.2, maxZ: 0,
       enabled: () => g.state === 'TRAVEL_TO_STORE' && !g.flags.has('waveDone') && !g.locked,
@@ -437,6 +440,8 @@ export class Story {
     this.wanderWarned = false;
     this.waveOpen = false;
     this.inCrowd = false;
+    this.objKey = '';
+    g.ui.setErrands(null);
     this.cutsceneSkippable = false;
     this.setDoor(false, true);
     g.apt.bowlFood.visible = false;
@@ -491,7 +496,7 @@ export class Story {
       HOME_EXPLORATION: ['Absolutely nothing.', 'Explore the apartment. Or don\'t. (The finale airs at 8.)'],
       CAT_FOOD_INCIDENT: ['Watch the finale.', 'Nothing can go wrong.'],
       LEAVE_APARTMENT: ['Leave the apartment.', 'Step 1 of 6. The hardest one, allegedly.'],
-      TRAVEL_TO_STORE: ['Reach the supermarket.', 'Namma Mart, down the street to the east.'],
+      TRAVEL_TO_STORE: ['Run the errands.', 'Three stops, any order. Follow the diamond.'],
       FIND_CAT_FOOD: ['FIND: CAT FOOD', 'Check the aisle signs. Or ask the staff (if you dare).'],
       CHECKOUT: ['Pay the cashier.', 'The billing counter, by the entrance. The final boss awaits.'],
       RETURN_HOME: ['Return home.', 'Miso is waiting. Miso is always waiting.'],
@@ -575,6 +580,18 @@ export class Story {
           this.bubble('tea', 'Chai, sir? Fresh one!');
           g.anx.add(6);
           setTimeout(() => g.dlg.think('anx', 'He offered us chai. Now we have to decline. OUT LOUD.'), 1000);
+        }
+        break;
+      case 'hardware':
+        if (!g.flags.has('gotBatteries') && this.errandsOpen()) {
+          this.bubble('hardware', 'Haan, what you want? Tell.');
+          g.anx.add(4);
+        }
+        break;
+      case 'xerox':
+        if (!g.flags.has('gotPrintout') && this.errandsOpen()) {
+          this.bubble('xerox', 'Xerox? Printout? Come, come!');
+          g.anx.add(4);
         }
         break;
       case 'mailman':
@@ -676,7 +693,7 @@ export class Story {
         m = z === 'apartment' ? a.door : g.flags.has('planStairs') ? a.stairs : a.lift;
         break;
       case 'TRAVEL_TO_STORE':
-        if (o) m = z === 'lobby' ? o.lobbyExit : o.storeEntrance;
+        if (o) m = z === 'lobby' ? o.lobbyExit : this.nearestErrand(true);
         if (z === 'street' && g.player.pos.x < -22 && !this.wanderWarned) {
           this.wanderWarned = true;
           g.dlg.think('logic', 'The supermarket is the other way. East. Toward the scary bright lights.');
@@ -693,7 +710,7 @@ export class Story {
         if (o) m = z === 'store' ? o.checkoutSpot : o.storeEntrance;
         break;
       case 'RETURN_HOME':
-        if (o) m = z === 'store' || z === 'street' ? o.lobbyExit : z === 'lobby' ? o.lobbyLift : null;
+        if (o) m = z === 'store' || z === 'street' ? this.nearestErrand(false) ?? o.lobbyExit : z === 'lobby' ? o.lobbyLift : null;
         if (z === 'corridor') m = a.door;
         break;
       case 'FEED_CAT':
@@ -701,12 +718,24 @@ export class Story {
         break;
     }
     g.setMarker(m);
+    // errand checklist + the return objective follow the list
+    const showList = !['MENU', 'HOME_EXPLORATION', 'CAT_FOOD_INCIDENT'].includes(g.state);
+    g.ui.setErrands(showList ? this.errandList() : null);
+    if (g.state === 'RETURN_HOME') {
+      const left = this.errandList().filter((e) => !e.done);
+      const key = left.map((e) => e.id).join(',');
+      if (key !== this.objKey) {
+        this.objKey = key;
+        if (left.length) g.ui.setObjective('Finish your errands.', `Still on the list: ${left.map((e) => e.short).join(' and ')}.`);
+        else g.ui.setObjective('Return home.', 'Miso is waiting. Miso is always waiting.');
+      }
+    }
     // general "where am I going" nudge
     if (!g.locked && g.stateTime > 60 && this.thoughtCd <= 0 && g.state !== 'HOME_EXPLORATION' && g.state !== 'ENDING') {
       this.thoughtCd = 45;
       const hint: Partial<Record<MissionState, string>> = {
         LEAVE_APARTMENT: 'The door. Then the lift. Or the stairs. Follow the little diamond.',
-        TRAVEL_TO_STORE: 'Namma Mart is east along this street. Follow the diamond.',
+        TRAVEL_TO_STORE: 'Batteries across the road, the xerox shop down the street, cat food at Namma Mart. Follow the diamond.',
         CHECKOUT: 'The cashier is by the entrance. We can do this. Probably.',
         RETURN_HOME: 'Home is back west. The building with the SUNSHINE ENCLAVE sign.',
         FEED_CAT: 'The bowl. By the fridge. Miso is staring holes into us.',
@@ -727,7 +756,6 @@ export class Story {
       await this.fadeOut();
       g.player.teleport(a.sofaSeat, Math.PI);
       g.player.poseOverride = 'sit';
-      g.apt.tv.redraw((c, w, h) => drawTV(c, w, h, 'finale'));
       g.misoPos.copy(W(0.7, 0, 0.9));
       g.misoYaw = -Math.PI / 2;
       g.miso.pose = 'sit';
@@ -735,6 +763,17 @@ export class Story {
       await this.fadeIn();
       await this.say('aarav', 'Snacks: ready. Blanket: deployed. Phone: on silent.');
       await this.say('aarav', 'Nothing can ruin this.');
+      // the remote dies
+      await this.say('aarav', 'Okay. Play.');
+      audio.sfx('click');
+      await g.wait(0.7);
+      audio.sfx('click');
+      await g.wait(0.25);
+      audio.sfx('click');
+      await this.say('aarav', '...Play.');
+      await this.say('think', 'The remote is dead. The batteries have chosen violence.');
+      await this.say('logic', 'The TV has buttons.');
+      await this.say('anx', 'On the BACK. Nobody in human history has found them.');
       // Miso jumps onto the coffee table
       audio.sfx('meow');
       const from = g.misoPos.clone();
@@ -797,6 +836,12 @@ export class Story {
       g.anx.add(30);
       await g.wait(0.8);
       await this.say('anx', 'Did the app just... bully us?');
+      audio.sfx('buzz');
+      app('Mail', '#2d6a4f', '<div class="app-small">Pixel &amp; Paws Studio · just now</div><div class="app-big">Interview confirmed: TOMORROW, 10:00 AM</div><div class="app-small">Please bring a <b>printed copy</b> of your resume.</div>');
+      g.anx.add(15);
+      await this.say('anx', 'PRINTED? On PAPER? Like a PIONEER?');
+      await this.say('logic', 'We don\'t own a printer.');
+      await this.say('anx', 'We own a printer. It hasn\'t worked since 2021. It is a shelf now.');
       g.ui.phone(null);
       g.player.poseOverride = null;
       // dramatic silence, slow push toward the front door
@@ -824,11 +869,12 @@ export class Story {
       await this.shot(W(1.4, 1.6, 0.6), W(2.35, 1.5, 3.15), 0.8);
       await this.say('aarav', '...Fine.');
       await this.say('aarav', 'For the cat.');
+      await this.say('think', '...And the remote. And, apparently, my entire career.');
       audio.sfx('quest');
       g.cam.shake = 0.4;
       const card = g.ui.card(
         `<div class="k">MAIN QUEST UNLOCKED</div><h1>OPERATION: TOUCH GRASS</h1>
-        <ol><li>Leave the apartment.</li><li>Reach the supermarket.</li><li>Find cat food.</li><li>Pay the cashier.</li><li>Return home.</li><li>Feed Miso.</li></ol>
+        <ol><li>Leave the apartment.</li><li>Buy cat food at Namma Mart.</li><li>Buy batteries at the hardware shop.</li><li>Print the resume at the xerox shop.</li><li>Return home.</li><li>Feed Miso. Watch the finale.</li></ol>
         <div class="stats">DIFFICULTY: <b>Emotionally Impossible</b><br/>RECOMMENDED LEVEL: <b>99</b> · CURRENT LEVEL: <b>2</b></div><div class="hint">Space to continue</div>`,
         '',
         g.skipping ? 2.5 : 7,
@@ -1366,6 +1412,11 @@ export class Story {
       g.run(() => this.say('think', 'We\'re not going back up empty-handed. Miso is counting on us.'));
       return;
     }
+    const left = this.errandList().filter((e) => !e.done);
+    if (left.length) {
+      g.run(() => this.say('think', `Not yet. Still need ${left.map((e) => e.short).join(' and ')}. We are NOT doing this trip twice.`));
+      return;
+    }
     g.run(async () => {
       audio.sfx('ding');
       await this.fadeOut('The lift ride home. You hum the lift music. Nobody hears. Victory.', 0.6);
@@ -1439,7 +1490,7 @@ export class Story {
     const id = computeEnding(g.stats);
     g.setMusic('cozy');
     await this.fadeOut('', 0.5);
-    g.apt.tv.redraw((c, w, h) => drawTV(c, w, h, 'credits'));
+    g.apt.tv.redraw((c, w, h) => drawTV(c, w, h, 'menu'));
     g.player.teleport(a.sofaSeat, Math.PI);
     g.player.poseOverride = 'sit';
     g.player.model.expr = 'happy';
@@ -1457,8 +1508,18 @@ export class Story {
       });
       pile.visible = true;
     }
-    await this.shot(W(0.6, 1.6, -0.6), W(-1, 0.9, 2.3), 0);
+    // the remote lives again
+    await this.shot(W(-2.3, 2.25, 4.05), W(-0.4, 1.0, -3.5), 0);
     await this.fadeIn(0.6);
+    await this.say('think', 'New batteries. Moment of truth.');
+    if (g.flags.has('battAAA')) await this.say('think', 'They\'re... too small. AAA. Of course.');
+    if (g.flags.has('battAAA')) await this.say('think', 'Folded paper behind them. Engineering.');
+    audio.sfx('click');
+    await g.wait(0.4);
+    g.apt.tv.redraw((c, w, h) => drawTV(c, w, h, 'finale'));
+    audio.sfx('ding');
+    await this.say('aarav', 'IT WORKS.');
+    await this.shot(W(0.6, 1.6, -0.6), W(-1, 0.9, 2.3), 0.9);
     if (id === 'A') {
       await this.say('aarav', 'That wasn\'t so bad.');
       await g.wait(0.8);
@@ -1479,11 +1540,13 @@ export class Story {
       const ex = g.stats.extras.map((e) => e.toLowerCase());
       const list = ex.length > 1 ? `${ex.slice(0, -1).join(', ')} and ${ex[ex.length - 1]}` : ex[0] ?? 'nothing extra, somehow';
       const memories = Math.max(3, g.stats.awkward + 4);
-      await this.say('aarav', 'I went outside for one packet of cat food.');
+      await this.say('aarav', 'I went outside for cat food, batteries and one printout.');
       await this.say('aarav', `I have returned with ${list}, and ${memories} new embarrassing memories.`);
       audio.sfx('eat');
       await this.say('system', 'Miso, eating happily, could not care less.');
     }
+    await this.say('think', 'Tomorrow: an interview. With a printed resume. Tomorrow\'s Aarav can panic about that.');
+    await this.say('think', 'Tonight: the finale.');
     const e = ENDINGS[id];
     audio.sfx('victory');
     await g.ui.card(`<div class="k">${e.kicker}</div><h1>${id === 'B' ? e.achievement : e.achievement}</h1><h2>ENDING ${id}: ${e.name}</h2>`, 'win', 4);
@@ -1904,5 +1967,189 @@ export class Story {
     }
     await this.say(V, 'Beta, onion is forty today. Very cheap. Take two kilo!');
     await this.say('anx', 'Two KILO? What would we DO with two kilo of onion?');
+  }
+
+  // ================================================================ errands: batteries + printout
+  private errandList() {
+    const g = this.g;
+    const catDone = g.state === 'RETURN_HOME' || g.state === 'FEED_CAT' || g.state === 'ENDING';
+    return [
+      { id: 'cat', label: 'Cat food · Namma Mart', short: 'cat food', done: catDone },
+      { id: 'batt', label: 'Batteries · hardware shop', short: 'batteries', done: g.flags.has('gotBatteries') },
+      { id: 'print', label: 'Resume printout · xerox shop', short: 'the printout', done: g.flags.has('gotPrintout') },
+    ];
+  }
+
+  private errandsOpen() {
+    const s = this.g.state;
+    return s === 'TRAVEL_TO_STORE' || s === 'FIND_CAT_FOOD' || s === 'CHECKOUT' || s === 'RETURN_HOME';
+  }
+
+  /** Closest unfinished stop (optionally including Namma Mart). */
+  private nearestErrand(includeStore: boolean): THREE.Vector3 | null {
+    const g = this.g;
+    const o = g.out?.anchors;
+    if (!o) return null;
+    const t: THREE.Vector3[] = [];
+    if (!g.flags.has('gotBatteries')) t.push(o.errandHardware);
+    if (!g.flags.has('gotPrintout')) t.push(o.errandXerox);
+    if (includeStore) t.push(o.storeEntrance);
+    if (!t.length) return null;
+    const p = g.player.pos;
+    return t.reduce((a, b) => (a.distanceTo(p) <= b.distanceTo(p) ? a : b));
+  }
+
+  private errandDoneThought() {
+    const left = this.errandList().filter((e) => !e.done);
+    if (!left.length) this.g.dlg.think('logic', 'That\'s everything. Home. Now. Before anyone else talks to us.');
+    else this.g.dlg.think('logic', `One down. Still need ${left.map((e) => e.short).join(' and ')}.`);
+  }
+
+  /** The Dead Remote: the battery-size interrogation, and an upsell. */
+  private async talkHardware() {
+    const g = this.g;
+    const H = this.npcSpeaker('hardware');
+    const n = g.npcs.get('hardware')!;
+    n.lookAtPlayer = true;
+    if (g.flags.has('gotBatteries') || !this.errandsOpen()) {
+      await this.say(H, g.flags.has('gotBatteries') ? 'Batteries working? If not, come back, I will exchange.' : 'Bolt, nut, screw, everything is there.');
+      n.lookAtPlayer = false;
+      return;
+    }
+    g.player.phoneOut = false;
+    g.player.yaw = Math.PI;
+    g.player.sync();
+    await this.shot(V3(n.pos.x + 2.6, 1.95, -11.6), V3(n.pos.x - 0.3, 1.25, -14.4), 0.6);
+    n.setPose('talk');
+    await this.say(H, 'Haan, tell.');
+    await this.say('anx', '"Tell." Tell WHAT? Our life story? Our fears?');
+    await this.say('aarav', 'Batteries, please. For a TV remote.');
+    await this.say(H, 'Which size? AA, AAA, C, D, nine-volt, button cell?');
+    g.anx.add(14);
+    g.player.model.expr = 'shock';
+    await this.say('anx', 'THERE ARE SIZES?');
+    await this.say('logic', 'The remote is at home. We did not bring the remote. We did not even LOOK at the remote.');
+    g.player.model.expr = 'nervous';
+    const c = await g.dlg.choose('WHICH BATTERY?', ['"The normal ones."', '"The small normal ones."', '*mime a battery with your fingers*', '"...All of them?"']);
+    if (c === 0) {
+      await this.say(H, 'Normal means AA. Everybody says normal.');
+      await this.say('logic', 'We said a vague thing and it was correct. Rare.');
+      this.social('SOCIAL XP +15', 'Bought batteries using only the word "normal".');
+    } else if (c === 1) {
+      await this.say(H, 'Small normal is AAA. Okay.');
+      await this.say('anx', 'Wait. Is the remote AA or AAA?');
+      await this.say('logic', 'We will find out at home. In the worst possible way.');
+      g.flags.add('battAAA');
+      g.stats.conversations++;
+    } else if (c === 2) {
+      g.player.poseOverride = 'talk';
+      await g.wait(1.0);
+      await this.say(H, '...Pencil?');
+      await this.say('aarav', 'Battery.');
+      await this.say(H, 'Ah! AA. Two pieces?');
+      g.player.poseOverride = null;
+      this.awkward();
+    } else {
+      await this.say(H, 'All? ...Okay! Full set. Good customer.');
+      await this.say('anx', 'We now own a nine-volt battery. We have never owned anything that takes a nine-volt battery.');
+      g.stats.extras.push('Every battery size');
+      this.awkward();
+    }
+    await this.say(H, 'Remote cover also? Plastic. Keeps the remote new for ten years.');
+    await this.say('anx', 'An upsell. We are physically incapable of saying no to upsells.');
+    const u = await g.dlg.choose('THE UPSELL', ['"No, thank you."', '"...Yes?"']);
+    if (u === 1) {
+      await this.say(H, 'Very good. Ten rupees extra.');
+      await this.say('logic', 'The remote will now outlive us.');
+      g.stats.extras.push('Remote cover');
+      g.addItem('cover', '🛡️', 'Remote cover', true);
+    } else {
+      await this.say(H, 'Okay, okay.');
+      await this.say('logic', 'We said no. To a shopkeeper. Out loud.');
+    }
+    audio.sfx('kaching', 0.6);
+    g.flags.add('gotBatteries');
+    g.addItem('batteries', '🔋', c === 3 ? 'Every battery size' : c === 1 ? 'AAA batteries' : 'AA batteries', true);
+    g.ui.toast('item', 'ERRAND DONE: BATTERIES', 'The remote will live again.');
+    n.setPose('idle');
+    n.lookAtPlayer = false;
+    g.player.model.expr = 'neutral';
+    this.errandDoneThought();
+  }
+
+  /** The Printout: no pen drive, a typo'd email, a resume read aloud, and an unexpected "all the best". */
+  private async talkXerox() {
+    const g = this.g;
+    const X = this.npcSpeaker('xerox');
+    const n = g.npcs.get('xerox')!;
+    n.lookAtPlayer = true;
+    if (g.flags.has('gotPrintout') || !this.errandsOpen()) {
+      await this.say(X, g.flags.has('gotPrintout') ? 'All the best for tomorrow, sir!' : 'Xerox, printout, lamination!');
+      n.lookAtPlayer = false;
+      return;
+    }
+    g.player.phoneOut = false;
+    g.player.yaw = 0;
+    g.player.sync();
+    await this.shot(V3(n.pos.x + 2.4, 1.9, -2.7), V3(n.pos.x - 0.3, 1.2, 0.7), 0.6);
+    n.setPose('talk');
+    await this.say(X, 'Xerox, printout, lamination, spiral binding. What?');
+    await this.say('aarav', 'One printout, please. My resume.');
+    await this.say(X, 'Pen drive?');
+    g.anx.add(10);
+    await this.say('anx', 'A PEN DRIVE? It is 2026. Who carries a PEN DRIVE?');
+    await this.say('logic', 'We have email. We have... email.');
+    await this.say(X, 'Okay, send to shop email. Written on that paper.');
+    await this.say('system', 'The sticky note says: manju.xerox.printout.lamination.1998@ ... it continues onto a second sticky note.');
+    const c = await g.dlg.choose('SEND THE FILE', ['Type it carefully, letter by letter.', 'Type it fast and confidently.']);
+    g.player.poseOverride = 'phone';
+    await g.wait(0.8);
+    if (c === 1) {
+      await this.say(X, 'Not come, sir.');
+      await this.say('anx', 'NOT COME.');
+      await this.say('logic', 'We typed "lamintion". He is watching us retype it.');
+      this.awkward();
+      await g.wait(0.8);
+    }
+    g.player.poseOverride = null;
+    await this.say(X, 'Came. Opening.');
+    n.setPose('scan');
+    await this.say(X, '(reading the screen) "Aarav. Skills: MS Office, teamwork, problem-solving... anime."');
+    g.anx.add(16);
+    g.player.model.expr = 'shock';
+    await this.say('anx', 'WHY DID WE WRITE ANIME.');
+    await this.say('logic', 'It was 3 AM. We thought it showed personality.');
+    await this.say(X, '"Hobbies: cats." Nice. I also like cats.');
+    g.player.model.expr = 'nervous';
+    await this.say(X, 'Black and white or colour?');
+    const k = await g.dlg.choose('PRINT SETTINGS', ['"Black and white."', '"Colour. It\'s an important day."', '"Colour, and... laminate it."']);
+    if (k === 1) await this.say(X, 'Colour, ten rupees. Good choice. Interview?');
+    else if (k === 2) {
+      await this.say(X, 'Laminated! Very professional. Waterproof also.');
+      await this.say('anx', 'Our resume is now waterproof. We are not.');
+      g.stats.extras.push('Laminated resume');
+    } else await this.say(X, 'Two rupees. Interview?');
+    audio.sfx('beep');
+    await g.wait(0.5);
+    audio.sfx('beep');
+    await g.wait(0.5);
+    audio.sfx('kaching', 0.6);
+    if (k === 2) await this.say(X, 'Interview?');
+    await this.say('aarav', '...Yeah. Tomorrow.');
+    n.setPose('idle', 'happy');
+    await this.say(X, 'All the best, sir. You will get it.');
+    g.player.model.expr = 'happy';
+    await g.wait(0.6);
+    await this.say('aarav', '...Thanks. Really.');
+    await this.say('logic', 'A stranger just wished us luck. And meant it.');
+    await this.say('anx', '...I am not crying. It is the toner.');
+    this.social('SOCIAL XP +20', 'A stranger wished you luck. You said thanks. Both of you meant it.');
+    g.flags.add('gotPrintout');
+    g.addItem('resume', '📄', k === 2 ? 'Laminated resume' : 'Resume (printed)', true);
+    g.ui.toast('item', 'ERRAND DONE: RESUME PRINTOUT', 'Printed. On paper. Like a pioneer.');
+    n.setPose('scan', 'neutral');
+    n.lookAtPlayer = false;
+    g.player.model.expr = 'neutral';
+    this.errandDoneThought();
   }
 }

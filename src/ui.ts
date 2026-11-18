@@ -45,6 +45,24 @@ export class UI {
     el.classList.add('flash');
   }
 
+  private errandsKey = '';
+  /** The shopping list under the objective. Pass null to hide it. */
+  setErrands(items: Array<{ label: string; done: boolean }> | null) {
+    const key = items ? items.map((i) => `${i.label}${i.done}`).join('|') : '';
+    if (key === this.errandsKey) return;
+    const el = $('errands');
+    const newlyDone = items && this.errandsKey && items.some((i, k) => i.done && !this.errandsKey.split('|')[k]?.endsWith('true'));
+    this.errandsKey = key;
+    el.hidden = !items;
+    if (!items) return;
+    el.innerHTML = items.map((i) => `<li class="${i.done ? 'done' : ''}"><span class="box">${i.done ? '✓' : ''}</span>${esc(i.label)}</li>`).join('');
+    if (newlyDone) {
+      el.classList.remove('flash');
+      void el.offsetWidth;
+      el.classList.add('flash');
+    }
+  }
+
   setClock(t: string) {
     $('clock').textContent = t;
   }

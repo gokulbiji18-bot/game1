@@ -277,6 +277,19 @@ export function castDefs(apt: Record<string, THREE.Vector3>, out: Record<string,
       chatter: ['Why is everything so expensive...', 'Toor dal, toor dal...'],
       imagined: ['He touched the noodles and put them back. Suspicious.'],
     },
+    // ---- errand shops
+    {
+      id: 'hardware', name: 'Venkatesh Uncle (Hardware)', color: '#ffd166', zone: 'out', aware: 2.4,
+      look: { skin: SKIN[3], top: 0xe9edc9, topStyle: 'shirt', accent: 0x6c584c, bottom: 0x6c584c, bottomStyle: 'pants', shoes: 0x3b2a20, hair: 0xb0b0b0, hairStyle: 'short', glasses: true, mustache: true, belly: 1.1, scale: 0.9 },
+      pos: V(0.6, -15.4), yaw: 0, pose: 'idle',
+      chatter: ['Bolt, nut, screw, everything is there.', 'Paint? Which colour? Every colour is there.'],
+    },
+    {
+      id: 'xerox', name: 'Manju (Xerox Shop)', color: '#a0c4ff', zone: 'out', aware: 2.4,
+      look: { skin: SKIN[1], top: 0x3a86ff, topStyle: 'tshirt', bottom: 0x22223b, bottomStyle: 'pants', shoes: 0xffffff, hair: 0x111111, hairStyle: 'messy', scale: 0.88 },
+      pos: V(35.2, 1.45), yaw: Math.PI, pose: 'scan',
+      chatter: ['Xerox, printout, lamination!', 'Spiral binding, two minutes!'],
+    },
     // ---- lobby
     {
       id: 'mailman', name: "Mr. D'Souza (Flat 101)", color: '#f4a261', zone: 'out', aware: 2.2,

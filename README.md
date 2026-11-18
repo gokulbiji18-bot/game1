@@ -61,7 +61,14 @@ npm run preview
 
 ## What's in the game
 
-**The route:** apartment → 3rd-floor corridor → lift or stairs → lobby → street → Namma Mart → checkout → back home → feed Miso.
+**The route:** apartment → corridor → lift or stairs → lobby → street → three errands in any order → back home → feed Miso.
+
+**Three errands, one trip.** The opening sets up all of them: the TV remote dies seconds before the finale, Miso's food jar is empty, and an email confirms a job interview tomorrow that needs a printed resume. A checklist under the objective tracks them, the diamond marker points to the nearest unfinished stop, and the lift home stays locked until all three are done.
+- **Cat food** at Namma Mart (the original mission, ending with the cashier boss).
+- **Batteries** at Sri Venkateshwara Hardware, across the road from the building. "Which size? AA, AAA, C, D, nine-volt?" Pick the wrong size and you'll fix it at home with folded paper. Then he tries to sell you a remote cover.
+- **Resume printout** at the xerox shop. No pen drive, a 40-character shop email to type, the shopkeeper reading your resume out loud ("Skills: ... anime"), and a sincere "All the best, sir" at the end.
+
+At home, the batteries go in, the TV comes on, and the finale finally plays.
 
 **Mission states:** `HOME_EXPLORATION → CAT_FOOD_INCIDENT → LEAVE_APARTMENT → TRAVEL_TO_STORE → FIND_CAT_FOOD → CHECKOUT → RETURN_HOME → FEED_CAT → ENDING`. Story beats only fire in the right state. You can't check out without the cat food, can't leave the store with unpaid items, and can't trigger the ending before you get home.
 

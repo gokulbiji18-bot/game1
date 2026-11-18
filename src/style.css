@@ -57,6 +57,12 @@ body { font-family: var(--font); color: var(--ink); user-select: none; -webkit-u
 .obj-text { font: 800 19px/1.25 var(--display); margin-top: 3px; }
 .obj-sub { font-size: 13px; color: var(--ink-dim); margin-top: 4px; line-height: 1.35; }
 .obj-sub:empty { display: none; }
+.obj-list { list-style: none; margin: 10px 0 0; padding: 8px 0 0; border-top: 1px dashed var(--line); display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
+.obj-list li { display: flex; align-items: center; gap: 8px; }
+.obj-list .box { width: 15px; height: 15px; flex: none; border: 2px solid var(--ink-dim); border-radius: 4px; font: 900 10px/11px var(--mono); text-align: center; color: var(--bg); }
+.obj-list li.done { color: var(--ink-dim); text-decoration: line-through; }
+.obj-list li.done .box { background: var(--green); border-color: var(--green); }
+.obj-list.flash { animation: objFlash 0.9s ease; }
 
 #meter {
   position: absolute; top: 18px; right: 18px; width: 250px; padding: 12px 14px; border-radius: 12px;

@@ -73,7 +73,7 @@ export function buildOutside(col: Collision): OutsideRefs {
   teaStall(b, 18, 28);
   // alley side walls + back wall
   b.box(30, 0, 10, 4, 3, 0.3, 0x7d7468, { collide: true });
-  shop(b, 32, 40, 0x6fa8dc, 'XEROX • PRINTOUTS', 'ಜೆರಾಕ್ಸ್', '#ffffff', '#1d3557');
+  xeroxShop(b, 32, 40);
   shop(b, 40, 56, 0xe07a5f, 'DARSHINI — IDLI VADA DOSA', 'ದರ್ಶಿನಿ', '#fff8e7', '#9b2226');
   construction(b, 56, 74);
   shop(b, 74, 84, 0xe9f5db, 'SRI SAI MEDICALS', 'ಮೆಡಿಕಲ್ಸ್', '#2d6a4f', '#ffffff');
@@ -85,7 +85,7 @@ export function buildOutside(col: Collision): OutsideRefs {
   // ---------- north side ----------
   residential(b, -50, -38, -11, 30, 16, 0xa5a58d, 1, undefined, true);
   residential(b, -27, -6, -14, -40, 15, 0xcdb4db, 1, 'NANDI HEIGHTS');
-  shopNorth(b, -6, 8, 0x90be6d, 'HARDWARE', 'ಹಾರ್ಡ್‌ವೇರ್');
+  hardwareShop(b, -6, 8);
   shopNorth(b, 8, 18, 0xf9c74f, 'TAILOR', 'ಟೈಲರ್');
   shopNorth(b, 18, 30, 0x577590, 'ATM • 24x7', '');
   park(b, 30, 62);
@@ -109,6 +109,9 @@ export function buildOutside(col: Collision): OutsideRefs {
   b.box(131.5, 0, -40, 11, 10, 1, 0x3d405b);
 
   // ---------- street furniture ----------
+  // tube lights inside the two errand shops
+  streetLights.push({ x: 1, y: 2.4, z: -15.6, color: 0xf3f8ff, intensity: 6, distance: 6 });
+  streetLights.push({ x: 36, y: 2.4, z: 1.6, color: 0xf3f8ff, intensity: 6, distance: 6 });
   const lampXs = [-32, -18, 13, 27, 41, 55, 76, 90, 112, 128];
   for (const x of lampXs) {
     streetLamp(b, x, -2.75, 1);
@@ -209,6 +212,8 @@ export function buildOutside(col: Collision): OutsideRefs {
     storeEntrance: V(100.5, 0, -1.2),
     storeInside: V(100.5, 0, 1.6),
     storeSignLook: V(100.5, 4, 0),
+    errandHardware: V(0.6, 0.6, -14.6),
+    errandXerox: V(35.2, 0.6, 0.6),
     ...store.anchors,
   };
 
@@ -377,6 +382,67 @@ function shopNorth(b: Batch, x0: number, x1: number, color: number, name: string
     const lit = Math.floor(x) % 2 === 0;
     b.box(x, 5, -13.95, 1.4, 1.2, 0.05, lit ? 0xffd98e : 0x2b2b44, { glow: lit });
   }
+}
+
+/** Open-front hardware shop on the north side (batteries errand). */
+function hardwareShop(b: Batch, x0: number, x1: number) {
+  const cx = (x0 + x1) / 2;
+  const w = x1 - x0;
+  const wall = 0xcbbfad;
+  b.box(cx, 2.9, -17, w, 5.1, 6, wall);
+  b.box(cx, 0, -28.5, w, 8, 23, wall, { collide: true });
+  b.box(x0 + 0.4, 0, -15.5, 0.8, 2.9, 3, wall, { collide: true });
+  b.box(x1 - 0.4, 0, -15.5, 0.8, 2.9, 3, wall, { collide: true });
+  rooftop(b, x0, x1, -40, -14, 8);
+  // counter with a battery display
+  b.box(cx, 0, -14.6, w - 1.6, 0.95, 0.6, 0x5c4033, { collide: true });
+  b.box(cx, 0.95, -14.6, w - 1.5, 0.05, 0.7, 0xa68a64);
+  b.box(cx + 1.6, 1.0, -14.55, 0.9, 0.35, 0.18, 0x222222);
+  for (let i = 0; i < 6; i++) b.cyl(cx + 1.25 + i * 0.13, 1.05, -14.45, 0.035, 0.18, i % 2 ? 0xffd60a : 0x1d1d1d, 8);
+  b.plane(cx + 1.6, 1.48, -14.46, 0.9, 0.22, signTexture('BATTERIES', { bg: '#ffd60a', fg: '#111', w: 256, h: 64 }));
+  // back-wall shelves: paint tins, buckets, pipes, hoses
+  for (let lvl = 0; lvl < 3; lvl++) {
+    b.box(cx, 0.6 + lvl * 0.7, -16.75, w - 1.8, 0.05, 0.45, 0x6b4a35);
+    for (let i = 0; i < 14; i++) {
+      const x = x0 + 1.2 + i * ((w - 2.4) / 13);
+      if (lvl === 1) b.cyl(x, 0.65 + lvl * 0.7, -16.75, 0.13, 0.3, [0xe63946, 0x457b9d, 0xf1faee, 0x2a9d8f][i % 4], 10);
+      else b.box(x, 0.65 + lvl * 0.7, -16.75, 0.22, 0.25 + (i % 3) * 0.06, 0.25, [0x6c757d, 0xffb703, 0x8d99ae, 0x588157][i % 4]);
+    }
+  }
+  for (let i = 0; i < 5; i++) b.cyl(x0 + 1.4 + i * 0.25, 0.05, -16.2, 0.04, 2.3, 0xadb5bd, 6);
+  for (let i = 0; i < 3; i++) b.cyl(x1 - 2 + i * 0.5, 0, -16.1, 0.28, 0.4, [0xe63946, 0x3a86ff, 0x2a9d8f][i], 12, { rTop: 0.33 });
+  b.cyl(x1 - 1.4, 2.1, -15.0, 0.3, 0.12, 0x2d6a4f, 14, { rotX: Math.PI / 2 });
+  b.box(cx, 2.4, -15.5, w - 2, 0.04, 0.2, 0xfff3c4, { glow: true });
+  b.box(cx, 2.9, -13.4, w, 0.08, 1.4, 0x588157, { rotX: -0.2 });
+  b.plane(cx, 3.5, -13.97, w - 1, 0.9, signTexture('SRI VENKATESHWARA HARDWARE', { bg: '#1d1b2e', fg: '#ffd166', kannada: 'ಹಾರ್ಡ್‌ವೇರ್', w: 768, h: 140, glow: true }), { basic: true });
+}
+
+/** Open-front xerox and print shop on the south side (resume errand). */
+function xeroxShop(b: Batch, x0: number, x1: number) {
+  const cx = (x0 + x1) / 2;
+  const w = x1 - x0;
+  const wall = 0xd8cfc0;
+  b.box(cx, 2.9, 3, w, 6, 6, wall);
+  b.box(cx, 0, 4.5, w, 2.9, 3, wall, { collide: true });
+  b.box(x0 + 0.4, 0, 1.5, 0.8, 2.9, 3, wall, { collide: true });
+  b.box(x1 - 0.4, 0, 1.5, 0.8, 2.9, 3, wall, { collide: true });
+  // counter, monitor, paper stacks
+  b.box(cx, 0, 0.6, w - 1.6, 0.95, 0.6, 0x1d3557, { collide: true });
+  b.box(cx, 0.95, 0.6, w - 1.5, 0.05, 0.7, 0xdee2e6);
+  b.box(cx - 1.2, 1.0, 0.75, 0.6, 0.4, 0.05, 0x111111);
+  b.box(cx - 1.2, 1.05, 0.72, 0.52, 0.32, 0.01, 0x9fd8ff, { glow: true });
+  for (let i = 0; i < 3; i++) b.box(cx + 0.4 + i * 0.4, 1.0, 0.55, 0.3, 0.08 + i * 0.05, 0.22, 0xf8f9fa);
+  // the photocopier with its green scan light, plus a laminator
+  b.box(cx + 1.8, 0, 2.2, 1.0, 1.0, 0.75, 0xced4da, { collide: true });
+  b.box(cx + 1.8, 1.0, 2.2, 1.0, 0.08, 0.75, 0x6c757d);
+  b.box(cx + 1.8, 0.75, 1.8, 0.8, 0.03, 0.02, 0x38b000, { glow: true });
+  b.box(cx - 2.6, 1.0, 0.6, 0.5, 0.15, 0.35, 0x495057);
+  // shelves of paper reams and spiral binders
+  for (let i = 0; i < 6; i++) b.box(x0 + 1.4 + i * 0.95, 1.2, 2.85, 0.8, 0.55, 0.25, [0xf8f9fa, 0xffd6a5, 0xcaffbf, 0xbde0fe][i % 4]);
+  b.plane(cx - 1.8, 1.9, 2.95, 1.4, 0.7, signTexture('PASSPORT PHOTOS', { bg: '#ffffff', fg: '#c1121f', sub: 'in 5 minutes · smile optional', w: 384, h: 192 }), { rotY: Math.PI });
+  b.box(cx, 2.4, 1.5, w - 2, 0.04, 0.2, 0xfff3c4, { glow: true });
+  b.box(cx, 2.9, -0.6, w, 0.08, 1.4, 0x1d3557, { rotX: 0.2 });
+  b.plane(cx, 3.5, -0.03, w - 1, 0.9, signTexture('XEROX • PRINTOUTS • LAMINATION', { bg: '#1d3557', fg: '#ffffff', kannada: 'ಜೆರಾಕ್ಸ್', w: 768, h: 140, glow: true }), { rotY: Math.PI, basic: true });
 }
 
 function teaStall(b: Batch, x0: number, x1: number) {
